@@ -1,5 +1,4 @@
 package org.everis.interledger.plugins;
 
-public class Transfer {
-
+public class Ledger {
 }
