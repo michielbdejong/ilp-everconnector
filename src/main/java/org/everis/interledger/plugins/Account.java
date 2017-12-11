@@ -38,4 +38,8 @@ public class Account {
     public void setBalance(int balance) {
         this.balance = balance;
     }
+
+    public void creditAccount(int amount) { this.balance += amount;}
+
+    public void debitAccount(int amount) { this.balance -= amount;}
 }
