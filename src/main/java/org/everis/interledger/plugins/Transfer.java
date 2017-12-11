@@ -8,6 +8,13 @@ import org.interledger.ilp.InterledgerPayment;
 
 public class Transfer {
 
+  private class ErrorMessages {
+    private ErrorMessages() {}
+
+    private final static String NO_STATUS = "The transaction still do not have a status.";
+    private final static String FLOW_STATUS = "The flow of status is incorrect";
+  }
+
   public enum TransferStatus {
     PREPARED,
     EXECUTED,
@@ -34,19 +41,52 @@ public class Transfer {
       InterledgerAddress sourceAccount,
       Integer amountValue,
       InterledgerPayment payment) {
+
     this.id = generator;
     generator = generator + 1;
 
     this.destinationAccount = destinationAccount;
     this.sourceAccount = sourceAccount;
 
-    this.status = TransferStatus.PREPARED;
+    this.status = null;
     this.amount = amountValue;
     this.payment = payment;
   }
 
   public Integer getId() {
-      return id;
+    return id;
+  }
+
+  public TransferStatus getStatus() {
+    if (this.status != null) {
+      return this.status;
+    } else {
+      throw new RuntimeException(ErrorMessages.NO_STATUS);
+    }
+  }
+
+  public void prepareTransaction() {
+    if (this.status != null) {
+      throw new RuntimeException(ErrorMessages.FLOW_STATUS);
+    } else {
+      this.status = TransferStatus.PREPARED;
+    }
+  }
+
+  public void executeTransaction() {
+    if (this.status != TransferStatus.PREPARED) {
+      throw new RuntimeException(ErrorMessages.FLOW_STATUS);
+    } else {
+      this.status = TransferStatus.EXECUTED;
+    }
+  }
+
+  public void rejectTransaction() {
+    if (this.status != TransferStatus.PREPARED) {
+      throw new RuntimeException(ErrorMessages.FLOW_STATUS);
+    } else {
+      this.status = TransferStatus.REJECTED;
+    }
   }
 
   public InterledgerAddress getDestinationAccount() {
