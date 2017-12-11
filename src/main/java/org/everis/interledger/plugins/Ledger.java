@@ -1,6 +1,7 @@
 package org.everis.interledger.plugins;
 
 import org.interledger.InterledgerAddress;
+import org.interledger.cryptoconditions.Fulfillment;
 
 import javax.money.CurrencyUnit;
 import java.util.ArrayList;
@@ -24,7 +25,6 @@ public class Ledger {
         this.ledgerPrefix = InterledgerAddress.of(ledgerPrefix);
         this.ledgerCurrency = ledgerCurrency;
         this.HOLD_ACCOUNT = new Account(InterledgerAddress.of("holdAccount"), "password", 0);
-
     }
 
 
@@ -35,8 +35,7 @@ public class Ledger {
     public LedgerInfo connect(InterledgerAddress pluginAccountAddress, String password) {
         if(this.pluginsConnected.contains(pluginAccountAddress)) {
             throw new RuntimeException("plugin already connected");
-        } else {
-            if(this.ledgerAccounts.containsKey(pluginAccountAddress)) {
+        } else if(this.ledgerAccounts.containsKey(pluginAccountAddress)) {
                 String accountPassword = this.ledgerAccounts.get(pluginAccountAddress).getPassword();
 
                 if(password.equals(accountPassword)) {
@@ -46,9 +45,9 @@ public class Ledger {
                 } else {
                     throw new RuntimeException("wrong password");
                 }
-            } else {
-                throw new RuntimeException("account not exist in the ledger");
             }
+        else {
+            throw new RuntimeException("account not exist in the ledger");
         }
     }
 
@@ -68,11 +67,36 @@ public class Ledger {
         }
     }
 
-    public void prepareTransaction() {
-
+    public Account getAccountByAddress(InterledgerAddress accountAddress) {
+        if(this.ledgerAccounts.containsKey(accountAddress)) {
+            return this.ledgerAccounts.get(accountAddress);
+        } else {
+            throw new RuntimeException("account not exist");
+        }
     }
 
-    public void fulfillCondition() {
+    public void prepareTransaction(Transfer newTransfer) {
+        Account sourceAccount = this.getAccountByAddress(newTransfer.getSourceAccount());
 
+        newTransfer.prepareTransaction();
+        sourceAccount.debitAccount(newTransfer.getAmount());
+        HOLD_ACCOUNT.creditAccount(newTransfer.getAmount());
+    }
+
+    public void fulfillCondition(Transfer transfer, Fulfillment fulfillment) {
+        Account destinationAccount = this.getAccountByAddress(transfer.getDestinationAccount());
+
+        transfer.setFulfillment(fulfillment);
+        transfer.executeTransaction();
+        HOLD_ACCOUNT.debitAccount(transfer.getAmount());
+        destinationAccount.creditAccount(transfer.getAmount());
+    }
+
+    public void rejectTransfer(Transfer rejectedTransfer) {
+        Account sourceAccount = this.getAccountByAddress(rejectedTransfer.getSourceAccount());
+
+        rejectedTransfer.rejectTransaction();
+        HOLD_ACCOUNT.debitAccount(rejectedTransfer.getAmount());
+        sourceAccount.creditAccount(rejectedTransfer.getAmount());
     }
 }
