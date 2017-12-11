@@ -65,7 +65,19 @@ public class Transfer {
     this.payment = paymentValue;
   }
 
-  public Condition getCondition() {
+    public TransferStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(TransferStatus status) {
+        this.status = status;
+    }
+
+    public Integer getAmount() {
+        return amount;
+    }
+
+    public Condition getCondition() {
     return condition;
   }
 
