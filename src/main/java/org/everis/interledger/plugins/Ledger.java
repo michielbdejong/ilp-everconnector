@@ -78,7 +78,7 @@ public class Ledger {
     public void prepareTransaction(Transfer newTransfer) {
         Account sourceAccount = this.getAccountByAddress(newTransfer.getSourceAccount());
 
-        newTransfer.setStatus(Transfer.TransferStatus.PREPARED);
+        newTransfer.prepareTransaction();
         sourceAccount.debitAccount(newTransfer.getAmount());
         HOLD_ACCOUNT.creditAccount(newTransfer.getAmount());
     }
@@ -87,24 +87,16 @@ public class Ledger {
         Account destinationAccount = this.getAccountByAddress(transfer.getDestinationAccount());
 
         transfer.setFulfillment(fulfillment);
-        if(transfer.equals(Transfer.TransferStatus.PREPARED)) {
-            transfer.setStatus(Transfer.TransferStatus.EXECUTED);
-            HOLD_ACCOUNT.debitAccount(transfer.getAmount());
-            destinationAccount.creditAccount(transfer.getAmount());
-        } else {
-            throw new RuntimeException("exception status");
-        }
+        transfer.executeTransaction();
+        HOLD_ACCOUNT.debitAccount(transfer.getAmount());
+        destinationAccount.creditAccount(transfer.getAmount());
     }
 
     public void rejectTransfer(Transfer rejectedTransfer) {
         Account sourceAccount = this.getAccountByAddress(rejectedTransfer.getSourceAccount());
 
-        if(rejectedTransfer.equals(Transfer.TransferStatus.PREPARED)) {
-            rejectedTransfer.setStatus(Transfer.TransferStatus.REJECTED);
-            HOLD_ACCOUNT.debitAccount(rejectedTransfer.getAmount());
-            sourceAccount.creditAccount(rejectedTransfer.getAmount());
-        } else {
-            throw new RuntimeException("exception status");
-        }
+        rejectedTransfer.rejectTransaction();
+        HOLD_ACCOUNT.debitAccount(rejectedTransfer.getAmount());
+        sourceAccount.creditAccount(rejectedTransfer.getAmount());
     }
 }
