@@ -116,10 +116,14 @@ public class Ledger {
         if(!this.ledgerTransfers.containsKey(newTransfer.getId())) {
             Account sourceAccount = getAccountByAddress(newTransfer.getSourceAccount());
 
-            newTransfer.prepareTransaction();
-            sourceAccount.debitAccount(newTransfer.getAmount());
-            HOLD_ACCOUNT.creditAccount(newTransfer.getAmount());
-            this.ledgerTransfers.put(newTransfer.getId(), newTransfer);
+            if(!this.ledgerTransfers.containsKey(newTransfer.getId())) {
+                this.ledgerTransfers.put(newTransfer.getId(), newTransfer);
+                sourceAccount.debitAccount(newTransfer.getAmount());
+                HOLD_ACCOUNT.creditAccount(newTransfer.getAmount());
+                newTransfer.prepareTransaction();
+            } else {
+                throw new RuntimeException("transfer already exist");
+            }
         } else {
             throw new RuntimeException("transfer already processed");
         }
