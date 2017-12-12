@@ -2,6 +2,7 @@ package org.everis.interledger.plugins;
 
 import org.interledger.InterledgerAddress;
 import org.interledger.cryptoconditions.Fulfillment;
+import org.interledger.ilp.InterledgerProtocolError;
 
 public class Plugin {
     private PluginConnection linkedAccount;
@@ -42,7 +43,7 @@ public class Plugin {
         if (this.isConnected()) {
             this.ledger.prepareTransaction(transfer);
         } else {
-            System.out.println("Can reach the connection");
+            throw new RuntimeException("Can reach the connection");
         }
     }
 
@@ -52,11 +53,14 @@ public class Plugin {
         if (this.isConnected()) {
             this.ledger.fulfillCondition(transfer, fulfillment);
         } else {
-            System.out.println("Can reach the connection");
+            throw new RuntimeException("Can reach the connection");
         }
     }
 
-//    void rejectIncomingTransfer(TransferId transferId, InterledgerProtocolError rejectionReason);
+    public void rejectIncomingTransfer(Transfer transfer, InterledgerProtocolError rejectionReason) {
+
+    }
+
 //    UUID addLedgerPluginEventHandler(LedgerPluginEventHandler eventHandler);
 //    void removeLedgerPluginEventHandler(UUID eventHandlerId);
 //    LedgerPluginEventEmitter getLedgerPluginEventEmitter();
@@ -66,11 +70,7 @@ public class Plugin {
         StringBuilder str = new StringBuilder();
         str.append("-PLUGIN-ACCOUNTS---------");
         str.append("\n-------------------------");
-        if (this.ledger != null) {
-            str.append("\n" + this.getLedgerInfo());
-        } else {
-            str.append("\n-NO-LEDGER------------");
-        }
+        str.append("\n" +  this.ledger == null ? "-NO-LEDGER------------" : this.getLedgerInfo());
         str.append("\nLinked Account " + this.linkedAccount.getAccount());
         str.append("\n-------------------------");
         return str.toString();

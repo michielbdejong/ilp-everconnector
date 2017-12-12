@@ -17,18 +17,21 @@ public class Ledger {
     private final LedgerInfo info;
     private static Account HOLD_ACCOUNT;
 
+    /**
+     * Construction of a default Ledger.
+     */
+    public Ledger() {
+        this("test1.everis.",  Monetary.getCurrency(Locale.UK));
+    }
+
     public Ledger(String ledgerPrefix, CurrencyUnit ledgerCurrency) {
         this.ledgerAccounts = new HashMap<InterledgerAddress, Account>();
         this.pluginsConnected = new HashMap<InterledgerAddress, PluginConnection>();
         this.ledgerTransfers = new HashMap<Integer, Transfer>();
         this.info = new LedgerInfo(InterledgerAddress.of(ledgerPrefix), ledgerCurrency);
 
-        InterledgerAddress addressHoldAccount = this.info.getLedgerPrefix().with("holdAccount");
+        InterledgerAddress addressHoldAccount = InterledgerAddress.of(ledgerPrefix + "holdAccount");
         this.HOLD_ACCOUNT = new Account(addressHoldAccount, "password", 0);
-    }
-
-    public Ledger() {
-        this("test1.everis.",  Monetary.getCurrency(Locale.UK));
     }
 
     public LedgerInfo getInfo() {
@@ -36,7 +39,12 @@ public class Ledger {
     }
 
     public void addAccount(Account newAccount) {
-        this.ledgerAccounts.put(newAccount.getAccountAddress(), newAccount);
+        InterledgerAddress newAccountAddress = newAccount.getAccountAddress();
+        if (!this.ledgerAccounts.containsKey(newAccountAddress)) {
+            this.ledgerAccounts.put(newAccountAddress, newAccount);
+        } else {
+            throw new RuntimeException("the account " + newAccountAddress + " already exist.");
+        }
     }
 
     public LedgerInfo connect(PluginConnection pluginConnection) {
@@ -81,9 +89,9 @@ public class Ledger {
 
         sourceAccount.debitAccount(newTransfer.getAmount());
         HOLD_ACCOUNT.creditAccount(newTransfer.getAmount());
-        newTransfer.prepareTransaction();
+        newTransfer.setPreparedStatus();
 
-        trackTranfer(newTransfer);
+        storeTranfer(newTransfer);
     }
 
     public void fulfillCondition(Transfer transfer, Fulfillment fulfillment) {
@@ -92,7 +100,7 @@ public class Ledger {
         transfer.setFulfillment(fulfillment);
         HOLD_ACCOUNT.debitAccount(transfer.getAmount());
         destinationAccount.creditAccount(transfer.getAmount());
-        transfer.executeTransaction();
+        transfer.setExecutedStatus();
     }
 
     public void rejectTransfer(Transfer rejectedTransfer) {
@@ -100,10 +108,10 @@ public class Ledger {
 
         HOLD_ACCOUNT.debitAccount(rejectedTransfer.getAmount());
         sourceAccount.creditAccount(rejectedTransfer.getAmount());
-        rejectedTransfer.rejectTransaction();
+        rejectedTransfer.setRejectedStatus();
     }
 
-    private void trackTranfer(Transfer newTransfer) {
+    private void storeTranfer(Transfer newTransfer) {
         int idTransfer = newTransfer.getId();
         if (!this.ledgerTransfers.containsKey(idTransfer)) {
             this.ledgerTransfers.put(idTransfer, newTransfer);
@@ -118,7 +126,7 @@ public class Ledger {
         str.append(this.info.toString());
         str.append("\n" + this.printAccounts());
         str.append("\n" + this.printPluginConnections());
-        str.append("\n" + this.printTransactions());
+        str.append("\n" + this.printTransactions() + "\n");
         return str.toString();
     }
 

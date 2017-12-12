@@ -1,22 +1,27 @@
 package org.everis.interledger.plugins;
 
 import org.interledger.InterledgerAddress;
-import org.interledger.cryptoconditions.Condition;
-import org.interledger.cryptoconditions.CryptoConditionType;
-import org.interledger.cryptoconditions.Fulfillment;
+import junit.framework.*;
 
 public class Test {
 
     public static void main(String [] args) {
-//        testCreateLedgerAccountConnections();
+        testCreateLedgerAccountConnections();
         testSimpleTransaction();
     }
 
+    /**
+     * Test of a simple transaction. We only handle the simple way, without taking care about
+     * conditions or fulfillments.
+     */
     private static void testSimpleTransaction() {
+        System.out.println("Simple Transaction Test ---------------------------------------------");
         Ledger ledgerEveris = new Ledger();
 
-        Account sourceAccount = new Account(InterledgerAddress.of("test1.everis.jhon"), "0000", 1000);
-        Account destinationAccount = new Account(InterledgerAddress.of("test1.everis.jane"), "1111", 0);
+        Account sourceAccount = new Account(InterledgerAddress.of("test1.everis.jhon"),
+            "0000", 1000);
+        Account destinationAccount = new Account(InterledgerAddress.of("test1.everis.jane"),
+            "1111", 0);
 
         ledgerEveris.addAccount(sourceAccount);
         ledgerEveris.addAccount(destinationAccount);
@@ -46,7 +51,13 @@ public class Test {
         System.out.println(ledgerEveris);
     }
 
+    /**
+     * Creation of a ledger, accounts and plugins. Also simulate the connection/disconnection  of
+     * the plugins.
+     */
     private static void testCreateLedgerAccountConnections() {
+        System.out.println("Creation of Ledgers, Accounts and Connectios ------------------------");
+
         Ledger ledgerEveris = new Ledger();
         System.out.println(ledgerEveris);
 

@@ -38,6 +38,13 @@ public class Transfer {
     private Condition condition;
     private Fulfillment fulfillment;
 
+    /**
+     *  Testing constructor. For now, we are no using InterledgerPayments, so to make it easy,
+     *  we're created this.
+     * @param sourceAccount
+     * @param destinationAccount
+     * @param amountValue
+     */
     public Transfer(
             InterledgerAddress sourceAccount,
             InterledgerAddress destinationAccount,
@@ -66,7 +73,7 @@ public class Transfer {
         return id;
     }
 
-    public TransferStatus getStatus() {
+    public TransferStatus getStatus() throws RuntimeException {
         if (this.status != null) {
             return this.status;
         } else {
@@ -74,7 +81,11 @@ public class Transfer {
         }
     }
 
-    public void prepareTransaction() {
+    /**
+     * Change the status of the transfer to the transaction to PREPARED.
+     * @throws RuntimeException Throws the exception in case of wrong flow of status.
+     */
+    public void setPreparedStatus() throws RuntimeException {
         if (this.status != null) {
             throw new RuntimeException(ErrorMessages.FLOW_STATUS);
         } else {
@@ -82,7 +93,11 @@ public class Transfer {
         }
     }
 
-    public void executeTransaction() {
+    /**
+     * Change the status of the transfer to the transaction to EXECUTED.
+     * @throws RuntimeException Throws the exception in case of wrong flow of status.
+     */
+    public void setExecutedStatus() throws RuntimeException {
         if (this.status != TransferStatus.PREPARED) {
             throw new RuntimeException(ErrorMessages.FLOW_STATUS);
         } else {
@@ -90,7 +105,11 @@ public class Transfer {
         }
     }
 
-    public void rejectTransaction() {
+    /**
+     * Change the status of the transfer to the transaction to REJECTED.
+     * @throws RuntimeException Throws the exception in case of wrong flow of status.
+     */
+    public void setRejectedStatus() throws RuntimeException {
         if (this.status != TransferStatus.PREPARED) {
             throw new RuntimeException(ErrorMessages.FLOW_STATUS);
         } else {

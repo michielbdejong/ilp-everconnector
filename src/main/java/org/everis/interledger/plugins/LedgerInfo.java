@@ -33,7 +33,7 @@ public class LedgerInfo {
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append("-LEDGER-INFO-------------------------------------------");
+        str.append("\n-LEDGER-INFO-------------------------------------------");
         str.append("\nPrefix " + ledgerPrefix.toString());
         str.append("\nCurrencyUnit " + ledgerCurency.toString());
         str.append("\n-------------------------");
