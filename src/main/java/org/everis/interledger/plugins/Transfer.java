@@ -39,10 +39,11 @@ public class Transfer {
     private Fulfillment fulfillment;
 
     public Transfer(
-            InterledgerAddress destinationAccount,
+
             InterledgerAddress sourceAccount,
-            Integer amountValue,
-            InterledgerPayment payment) {
+            InterledgerAddress destinationAccount,
+            Integer amountValue/*,
+            InterledgerPayment payment*/) {
 
         this.id = generator;
         generator = generator + 1;
@@ -52,7 +53,7 @@ public class Transfer {
 
         this.status = null;
         this.amount = amountValue;
-        this.payment = payment;
+        //this.payment = payment;
     }
 
     public Integer getId() {
@@ -105,11 +106,6 @@ public class Transfer {
 
     public void setPayment(InterledgerPayment paymentValue) {
         this.payment = paymentValue;
-    }
-
-
-    public void setStatus(TransferStatus status) {
-        this.status = status;
     }
 
     public Integer getAmount() {
