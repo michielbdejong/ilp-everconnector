@@ -39,8 +39,15 @@ public class Transfer {
     private Fulfillment fulfillment;
 
     public Transfer(
-            InterledgerAddress destinationAccount,
             InterledgerAddress sourceAccount,
+            InterledgerAddress destinationAccount,
+            Integer amountValue) {
+        this(sourceAccount, destinationAccount, amountValue, null);
+    }
+
+    public Transfer(
+            InterledgerAddress sourceAccount,
+            InterledgerAddress destinationAccount,
             Integer amountValue,
             InterledgerPayment payment) {
 
@@ -107,7 +114,6 @@ public class Transfer {
         this.payment = paymentValue;
     }
 
-
     public void setStatus(TransferStatus status) {
         this.status = status;
     }
@@ -130,5 +136,20 @@ public class Transfer {
 
     public void setFulfillment(Fulfillment fulfillmentValue) {
         this.fulfillment = fulfillmentValue;
+    }
+
+    @Override
+    public String toString() {
+        return "Transfer {" +
+            "id=" + id +
+            ", destinationAccount=" + destinationAccount +
+            ", sourceAccount=" + sourceAccount +
+            ", amount=" + amount +
+//            ", expiration=" + expiration +
+            ", status=" + (status == null ? "NULL" : status) +
+//            ", payment=" + payment +
+//            ", condition=" + condition +
+//            ", fulfillment=" + fulfillment +
+            '}';
     }
 }

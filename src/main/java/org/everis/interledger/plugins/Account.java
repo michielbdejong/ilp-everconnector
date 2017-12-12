@@ -37,4 +37,11 @@ public class Account {
     public void creditAccount(int amount) { this.balance += amount;}
 
     public void debitAccount(int amount) { this.balance -= amount;}
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(this.accountAddress + " | " + balance);
+        return str.toString();
+    }
 }
