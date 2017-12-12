@@ -1,7 +1,6 @@
 package org.everis.interledger.plugins;
 
 import org.interledger.InterledgerAddress;
-import junit.framework.*;
 
 public class Test {
 
