@@ -1,25 +1,25 @@
 package org.everis.interledger.plugins;
 
+import java.util.Locale;
+import javax.money.Monetary;
 import org.interledger.InterledgerAddress;
 import org.interledger.cryptoconditions.Fulfillment;
 
 import javax.money.CurrencyUnit;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
  * Basic simulation entity of a ledger.
  */
 public class Ledger {
+
     private Map<InterledgerAddress, Account> ledgerAccounts;
-    private List<InterledgerAddress> pluginsConnected;
+    private Map<InterledgerAddress, PluginConnection> pluginsConnected;
     private Map<Integer, Transfer> ledgerTransfers;
     private final InterledgerAddress ledgerPrefix;
     private final CurrencyUnit ledgerCurrency;
     private static Account HOLD_ACCOUNT;
-
 
     /**
      * Constructor's ledger with a prefix and a currency unit.
@@ -28,7 +28,7 @@ public class Ledger {
      */
     public Ledger(String ledgerPrefix, CurrencyUnit ledgerCurrency) {
         this.ledgerAccounts = new HashMap<InterledgerAddress, Account>();
-        this.pluginsConnected = new ArrayList<InterledgerAddress>();
+        this.pluginsConnected = new HashMap<InterledgerAddress, PluginConnection>();
         this.ledgerTransfers = new HashMap<Integer, Transfer>();
         this.ledgerPrefix = InterledgerAddress.of(ledgerPrefix);
         this.ledgerCurrency = ledgerCurrency;
@@ -42,29 +42,34 @@ public class Ledger {
      * @param newAccount
      */
     public void addAccount(Account newAccount) {
-        this.ledgerAccounts.put(newAccount.getAccountAddress(), newAccount);
+        InterledgerAddress newAccountAddress = newAccount.getAccountAddress();
+        if (!this.ledgerAccounts.containsKey(newAccountAddress)) {
+            this.ledgerAccounts.put(newAccountAddress, newAccount);
+        } else {
+            throw new RuntimeException("the account " + newAccountAddress + " already exist.");
+        }
     }
 
     /**
      * connect a plugin with the ledger via the plugin's account on the ledger.
      * @param pluginConnection
      */
-    public void connect(PluginConnection pluginConnection) {
+    public LedgerInfo connect(PluginConnection pluginConnection) {
         InterledgerAddress pluginAccountAddress = pluginConnection.getPluginAccountAddress();
         String password = pluginConnection.getPluginAccountPassword();
 
-        if(this.pluginsConnected.contains(pluginAccountAddress)) {
+        if(this.pluginsConnected.containsKey(pluginAccountAddress)) {
             throw new RuntimeException("plugin already connected");
         } else if(this.ledgerAccounts.containsKey(pluginAccountAddress)) {
             String accountPassword = this.ledgerAccounts.get(pluginAccountAddress).getPassword();
 
             if(password.equals(accountPassword)) {
-                this.pluginsConnected.add(pluginAccountAddress);
+                this.pluginsConnected.put(pluginAccountAddress, pluginConnection);
+                return new LedgerInfo(this.ledgerPrefix, this.ledgerCurrency);
             } else {
                 throw new RuntimeException("wrong password");
             }
-        }
-        else {
+        } else {
             throw new RuntimeException("account not exist in the ledger");
         }
     }
@@ -74,7 +79,7 @@ public class Ledger {
      * @param pluginAccountAddress
      */
     public void disconnect(InterledgerAddress pluginAccountAddress) {
-        if(this.pluginsConnected.contains(pluginAccountAddress)) {
+        if(this.pluginsConnected.containsKey(pluginAccountAddress)) {
             this.pluginsConnected.remove(pluginAccountAddress);
         } else {
             throw new RuntimeException("plugin not connected");
@@ -87,11 +92,7 @@ public class Ledger {
      * @return boolean
      */
     public boolean isPluginConnected(InterledgerAddress pluginAccountAddress) {
-        if(this.pluginsConnected.contains(pluginAccountAddress)) {
-            return true;
-        } else {
-            return false;
-        }
+        return this.pluginsConnected.containsKey(pluginAccountAddress);
     }
 
     /**
@@ -120,7 +121,7 @@ public class Ledger {
                 this.ledgerTransfers.put(newTransfer.getId(), newTransfer);
                 sourceAccount.debitAccount(newTransfer.getAmount());
                 HOLD_ACCOUNT.creditAccount(newTransfer.getAmount());
-                newTransfer.prepareTransaction();
+                newTransfer.setPreparedStatus();
             } else {
                 throw new RuntimeException("transfer already exist");
             }
@@ -142,7 +143,7 @@ public class Ledger {
             transfer.setFulfillment(fulfillment);
             HOLD_ACCOUNT.debitAccount(transfer.getAmount());
             destinationAccount.creditAccount(transfer.getAmount());
-            transfer.executeTransaction();
+            transfer.setExecutedStatus();
         } else {
             throw new RuntimeException("transfer not exist");
         }
@@ -157,7 +158,7 @@ public class Ledger {
             Transfer rejectedTransfer = this.ledgerTransfers.get(transferId);
             Account sourceAccount = this.getAccountByAddress(rejectedTransfer.getSourceAccount());
 
-            rejectedTransfer.rejectTransaction();
+            rejectedTransfer.setRejectedStatus();
             HOLD_ACCOUNT.debitAccount(rejectedTransfer.getAmount());
             sourceAccount.creditAccount(rejectedTransfer.getAmount());
         } else {
@@ -165,28 +166,61 @@ public class Ledger {
         }
     }
 
-    //getters for testing
-    public Map<InterledgerAddress, Account> getLedgerAccounts() {
-        return ledgerAccounts;
-    }
-
-    public List<InterledgerAddress> getPluginsConnected() {
-        return pluginsConnected;
-    }
-
-    public Map<Integer, Transfer> getLedgerTransfers() {
-        return ledgerTransfers;
-    }
-
-    public InterledgerAddress getLedgerPrefix() {
-        return ledgerPrefix;
-    }
-
-    public CurrencyUnit getLedgerCurrency() {
-        return ledgerCurrency;
-    }
-
     public Account getHoldAccount() {
         return HOLD_ACCOUNT;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(new LedgerInfo(this.ledgerPrefix, this.ledgerCurrency));
+        str.append("\n" + this.printAccounts());
+        str.append("\n" + this.printPluginConnections());
+        str.append("\n" + this.printTransactions() + "\n");
+        return str.toString();
+    }
+    
+    public String printAccounts() {
+        StringBuilder str = new StringBuilder();
+        str.append("-LEDGER-ACCOUNTS---------");
+        str.append("\n" + HOLD_ACCOUNT);
+        str.append("\n-------------------------");
+        if (!this.ledgerAccounts.isEmpty()) {
+            for (InterledgerAddress addressAccount : this.ledgerAccounts.keySet()) {
+                str.append("\n" + this.ledgerAccounts.get(addressAccount));
+            }
+        } else {
+            str.append("\n-NO-ACCOUNTS-------------");
+        }
+        str.append("\n-------------------------");
+        return str.toString();
+    }
+
+    public String printPluginConnections() {
+        StringBuilder str = new StringBuilder();
+        str.append("-PLUGIN-CONNECTIONS------");
+        if (!this.pluginsConnected.isEmpty()) {
+            for (InterledgerAddress pluginConnected : this.ledgerAccounts.keySet()) {
+                str.append("\n" + this.pluginsConnected.get(pluginConnected));
+            }
+        } else {
+            str.append("\n-NO-CONNECTIONS----------");
+        }
+        str.append("\n-------------------------");
+        return str.toString();
+    }
+
+    public String printTransactions() {
+        StringBuilder str = new StringBuilder();
+        str.append("-LEDGER-TRANSACTIONS-----");
+        if (!this.ledgerTransfers.isEmpty()) {
+            for (int idTransaction : this.ledgerTransfers.keySet()) {
+                str.append("\n" + this.ledgerTransfers.get(idTransaction));
+            }
+        } else {
+            str.append("\n-NO-TRANSACTIONS---------");
+        }
+        str.append("\n-------------------------");
+        return str.toString();
     }
 }

@@ -22,7 +22,6 @@ public class LedgerInfo {
         this.ledgerCurency = ledgerCurency;
     }
 
-
     //getters and setters
     public InterledgerAddress getLedgerPrefix() {
         return ledgerPrefix;
@@ -38,5 +37,15 @@ public class LedgerInfo {
 
     public void setLedgerCurency(CurrencyUnit ledgerCurency) {
         this.ledgerCurency = ledgerCurency;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append("\n-LEDGER-INFO-------------------------------------------");
+        str.append("\nPrefix " + ledgerPrefix.toString());
+        str.append("\nCurrencyUnit " + ledgerCurency.toString());
+        str.append("\n-------------------------");
+        return str.toString();
     }
 }
