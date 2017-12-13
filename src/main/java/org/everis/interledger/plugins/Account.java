@@ -58,4 +58,11 @@ public class Account {
     public int getBalance() {
         return balance;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append(this.accountAddress + " | " + balance);
+        return str.toString();
+    }
 }

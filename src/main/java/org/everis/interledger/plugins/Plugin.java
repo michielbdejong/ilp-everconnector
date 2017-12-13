@@ -9,13 +9,23 @@ public class Plugin {
     private PluginConnection pluginConnection;
     private Ledger ledger;
 
-
     /**
      * Connector with a PluginConnection object.
      * @param pluginConnection
      */
     public Plugin(PluginConnection pluginConnection) {
         this.pluginConnection = pluginConnection;
+    }
+    
+    /**
+     * Connector who creates too the instance of the plugin connection with the linked account 
+     * to this plugin.
+     * @param linkedAccount Account which will be linked to this instance of the plugin. It will
+     *                      take the values of the account and call the base constructor.
+     */
+    public Plugin(Account linkedAccount) {
+        this.ledger = null;
+        this(new PluginConnection(linkedAccount));
     }
 
     /**
@@ -66,5 +76,16 @@ public class Plugin {
      */
     public void rejectTransfer(int transferId) {
         this.ledger.rejectTransfer(transferId);
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append("-PLUGIN-ACCOUNTS---------");
+        str.append("\n-------------------------");
+        str.append("\n" +  this.ledger == null ? "-NO-LEDGER------------" : this.getLedgerInfo());
+        str.append("\nLinked Account " + this.pluginConnection.getAccount());
+        str.append("\n-------------------------");
+        return str.toString();
     }
 }
