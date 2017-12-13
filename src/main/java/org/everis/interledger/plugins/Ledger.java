@@ -9,35 +9,38 @@ import javax.money.CurrencyUnit;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Basic simulation entity of a ledger.
+ */
 public class Ledger {
 
     private Map<InterledgerAddress, Account> ledgerAccounts;
     private Map<InterledgerAddress, PluginConnection> pluginsConnected;
     private Map<Integer, Transfer> ledgerTransfers;
-    private final LedgerInfo info;
+    private final InterledgerAddress ledgerPrefix;
+    private final CurrencyUnit ledgerCurrency;
     private static Account HOLD_ACCOUNT;
 
     /**
-     * Construction of a default Ledger.
+     * Constructor's ledger with a prefix and a currency unit.
+     * @param ledgerPrefix
+     * @param ledgerCurrency
      */
-    public Ledger() {
-        this("test1.everis.",  Monetary.getCurrency(Locale.UK));
-    }
-
     public Ledger(String ledgerPrefix, CurrencyUnit ledgerCurrency) {
         this.ledgerAccounts = new HashMap<InterledgerAddress, Account>();
         this.pluginsConnected = new HashMap<InterledgerAddress, PluginConnection>();
         this.ledgerTransfers = new HashMap<Integer, Transfer>();
-        this.info = new LedgerInfo(InterledgerAddress.of(ledgerPrefix), ledgerCurrency);
-
-        InterledgerAddress addressHoldAccount = InterledgerAddress.of(ledgerPrefix + "holdAccount");
-        this.HOLD_ACCOUNT = new Account(addressHoldAccount, "password", 0);
+        this.ledgerPrefix = InterledgerAddress.of(ledgerPrefix);
+        this.ledgerCurrency = ledgerCurrency;
+        //create a hold account specific for this ledger
+        this.HOLD_ACCOUNT = new Account(InterledgerAddress.of("test1.holdAccount"), "password", 0);
     }
 
-    public LedgerInfo getInfo() {
-        return info;
-    }
 
+    /**
+     * add an account to the ledger.
+     * @param newAccount
+     */
     public void addAccount(Account newAccount) {
         InterledgerAddress newAccountAddress = newAccount.getAccountAddress();
         if (!this.ledgerAccounts.containsKey(newAccountAddress)) {
@@ -47,15 +50,22 @@ public class Ledger {
         }
     }
 
+    /**
+     * connect a plugin with the ledger via the plugin's account on the ledger.
+     * @param pluginConnection
+     */
     public LedgerInfo connect(PluginConnection pluginConnection) {
-        InterledgerAddress accountAddress = pluginConnection.getAccount();
-        if(this.pluginsConnected.containsKey(accountAddress) ) {
+        InterledgerAddress pluginAccountAddress = pluginConnection.getPluginAccountAddress();
+        String password = pluginConnection.getPluginAccountPassword();
+
+        if(this.pluginsConnected.containsKey(pluginAccountAddress)) {
             throw new RuntimeException("plugin already connected");
-        } else if(this.ledgerAccounts.containsKey(accountAddress)) {
-            String accountPassword = this.ledgerAccounts.get(accountAddress).getPassword();
-            if(pluginConnection.getPassword().equals(accountPassword)) {
-                this.pluginsConnected.put(accountAddress, pluginConnection);
-                return this.info;
+        } else if(this.ledgerAccounts.containsKey(pluginAccountAddress)) {
+            String accountPassword = this.ledgerAccounts.get(pluginAccountAddress).getPassword();
+
+            if(password.equals(accountPassword)) {
+                this.pluginsConnected.put(pluginAccountAddress, pluginConnection);
+                return new LedgerInfo(this.ledgerPrefix, this.ledgerCurrency);
             } else {
                 throw new RuntimeException("wrong password");
             }
@@ -64,6 +74,10 @@ public class Ledger {
         }
     }
 
+    /**
+     * disconnect a plugin from the ledger.
+     * @param pluginAccountAddress
+     */
     public void disconnect(InterledgerAddress pluginAccountAddress) {
         if(this.pluginsConnected.containsKey(pluginAccountAddress)) {
             this.pluginsConnected.remove(pluginAccountAddress);
@@ -72,10 +86,20 @@ public class Ledger {
         }
     }
 
+    /**
+     * check if a plugin is right connected with a ledger.
+     * @param pluginAccountAddress
+     * @return boolean
+     */
     public boolean isPluginConnected(InterledgerAddress pluginAccountAddress) {
         return this.pluginsConnected.containsKey(pluginAccountAddress);
     }
 
+    /**
+     * get an account from its ilp address
+     * @param accountAddress
+     * @return Account
+     */
     public Account getAccountByAddress(InterledgerAddress accountAddress) {
         if(this.ledgerAccounts.containsKey(accountAddress)) {
             return this.ledgerAccounts.get(accountAddress);
@@ -84,52 +108,78 @@ public class Ledger {
         }
     }
 
+    /**
+     * first step of the ILP flow to prepare a transfer by transferring the funds on the hold account and put
+     * the transfer status as "PREPARED".
+     * @param newTransfer
+     */
     public void prepareTransaction(Transfer newTransfer) {
-        Account sourceAccount = this.getAccountByAddress(newTransfer.getSourceAccount());
+        if(!this.ledgerTransfers.containsKey(newTransfer.getId())) {
+            Account sourceAccount = getAccountByAddress(newTransfer.getSourceAccount());
 
-        sourceAccount.debitAccount(newTransfer.getAmount());
-        HOLD_ACCOUNT.creditAccount(newTransfer.getAmount());
-        newTransfer.setPreparedStatus();
-
-        storeTranfer(newTransfer);
-    }
-
-    public void fulfillCondition(Transfer transfer, Fulfillment fulfillment) {
-        Account destinationAccount = this.getAccountByAddress(transfer.getDestinationAccount());
-
-        transfer.setFulfillment(fulfillment);
-        HOLD_ACCOUNT.debitAccount(transfer.getAmount());
-        destinationAccount.creditAccount(transfer.getAmount());
-        transfer.setExecutedStatus();
-    }
-
-    public void rejectTransfer(Transfer rejectedTransfer) {
-        Account sourceAccount = this.getAccountByAddress(rejectedTransfer.getSourceAccount());
-
-        HOLD_ACCOUNT.debitAccount(rejectedTransfer.getAmount());
-        sourceAccount.creditAccount(rejectedTransfer.getAmount());
-        rejectedTransfer.setRejectedStatus();
-    }
-
-    private void storeTranfer(Transfer newTransfer) {
-        int idTransfer = newTransfer.getId();
-        if (!this.ledgerTransfers.containsKey(idTransfer)) {
-            this.ledgerTransfers.put(idTransfer, newTransfer);
+            if(!this.ledgerTransfers.containsKey(newTransfer.getId())) {
+                this.ledgerTransfers.put(newTransfer.getId(), newTransfer);
+                sourceAccount.debitAccount(newTransfer.getAmount());
+                HOLD_ACCOUNT.creditAccount(newTransfer.getAmount());
+                newTransfer.setPreparedStatus();
+            } else {
+                throw new RuntimeException("transfer already exist");
+            }
         } else {
-            throw new RuntimeException("The transfer " + idTransfer + " is already tracked");
+            throw new RuntimeException("transfer already processed");
         }
+    }
+
+    /**
+     * Fulfill the condition of the transfer by receiver when he agree with the conditions of the transfer.
+     * @param transferId
+     * @param fulfillment
+     */
+    public void fulfillCondition(int transferId, Fulfillment fulfillment) {
+        if(this.ledgerTransfers.containsKey(transferId)) {
+            Transfer transfer = this.ledgerTransfers.get(transferId);
+            Account destinationAccount = this.getAccountByAddress(transfer.getDestinationAccount());
+
+            transfer.setFulfillment(fulfillment);
+            HOLD_ACCOUNT.debitAccount(transfer.getAmount());
+            destinationAccount.creditAccount(transfer.getAmount());
+            transfer.setExecutedStatus();
+        } else {
+            throw new RuntimeException("transfer not exist");
+        }
+    }
+
+    /**
+     * reject the transfer by the receiver when the transfer'd conditions are not respected or the timeout is passed.
+     * @param transferId
+     */
+    public void rejectTransfer(int transferId) {
+        if(this.ledgerTransfers.containsKey(transferId)) {
+            Transfer rejectedTransfer = this.ledgerTransfers.get(transferId);
+            Account sourceAccount = this.getAccountByAddress(rejectedTransfer.getSourceAccount());
+
+            rejectedTransfer.setRejectedStatus();
+            HOLD_ACCOUNT.debitAccount(rejectedTransfer.getAmount());
+            sourceAccount.creditAccount(rejectedTransfer.getAmount());
+        } else {
+            throw new RuntimeException("transfer not exist");
+        }
+    }
+
+    public Account getHoldAccount() {
+        return HOLD_ACCOUNT;
     }
 
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append(this.info.toString());
+        str.append(new LedgerInfo(this.ledgerPrefix, this.ledgerCurrency));
         str.append("\n" + this.printAccounts());
         str.append("\n" + this.printPluginConnections());
         str.append("\n" + this.printTransactions() + "\n");
         return str.toString();
     }
-
+    
     public String printAccounts() {
         StringBuilder str = new StringBuilder();
         str.append("-LEDGER-ACCOUNTS---------");

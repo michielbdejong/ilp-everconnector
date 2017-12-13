@@ -52,6 +52,12 @@ public class Transfer {
         this(sourceAccount, destinationAccount, amountValue, null);
     }
 
+    /**
+     * @param sourceAccount
+     * @param destinationAccount
+     * @param amountValue
+     * @param payment ILP packet associated to the transfer. Right now we are not using it. Next step.
+     */
     public Transfer(
             InterledgerAddress sourceAccount,
             InterledgerAddress destinationAccount,
@@ -131,10 +137,6 @@ public class Transfer {
 
     public void setPayment(InterledgerPayment paymentValue) {
         this.payment = paymentValue;
-    }
-
-    public void setStatus(TransferStatus status) {
-        this.status = status;
     }
 
     public Integer getAmount() {

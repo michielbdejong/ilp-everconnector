@@ -1,5 +1,7 @@
 package org.everis.interledger.plugins;
 
+import java.util.Locale;
+import javax.money.Monetary;
 import org.interledger.InterledgerAddress;
 
 public class Test {
@@ -15,7 +17,7 @@ public class Test {
      */
     private static void testSimpleTransaction() {
         System.out.println("Simple Transaction Test ---------------------------------------------");
-        Ledger ledgerEveris = new Ledger();
+        Ledger ledgerEveris = new Ledger("test1.pound", Monetary.getCurrency(Locale.UK));
 
         Account sourceAccount = new Account(InterledgerAddress.of("test1.everis.jhon"),
             "0000", 1000);
@@ -25,8 +27,14 @@ public class Test {
         ledgerEveris.addAccount(sourceAccount);
         ledgerEveris.addAccount(destinationAccount);
 
-        Plugin sourcePlugin = new Plugin(sourceAccount);
-        Plugin destinationPlugin = new Plugin(destinationAccount);
+        PluginConnection sourcePluginConnection =
+            new PluginConnection(sourceAccount.getAccountAddress(), sourceAccount.getPassword());
+
+        PluginConnection destinationPluginConnection =
+            new PluginConnection(destinationAccount.getAccountAddress(), destinationAccount.getPassword());
+
+        Plugin sourcePlugin = new Plugin(sourcePluginConnection);
+        Plugin destinationPlugin = new Plugin(destinationPluginConnection);
 
         System.out.println(ledgerEveris);
 
@@ -39,10 +47,11 @@ public class Test {
         sourcePlugin.connect(ledgerEveris);
         sourcePlugin.sendTransfer(testOne);
 
-        System.out.println(ledgerEveris);
+//        System.out.println("null here" + "\n" + ledgerEveris);
 
         destinationPlugin.connect(ledgerEveris);
-        destinationPlugin.fulfillCondition(testOne, null);
+        System.out.println("null here" + "\n" + ledgerEveris);
+        destinationPlugin.fulfillCondition(testOne.getId(), null);
 
         sourcePlugin.disconnect();
         destinationPlugin.disconnect();
@@ -57,7 +66,7 @@ public class Test {
     private static void testCreateLedgerAccountConnections() {
         System.out.println("Creation of Ledgers, Accounts and Connectios ------------------------");
 
-        Ledger ledgerEveris = new Ledger();
+        Ledger ledgerEveris = new Ledger("test1.pound", Monetary.getCurrency(Locale.UK));
         System.out.println(ledgerEveris);
 
         Account jhonDoe = new Account(InterledgerAddress.of("test1.everis.jhon"),
@@ -67,17 +76,26 @@ public class Test {
 
         ledgerEveris.addAccount(janeDoe);
         ledgerEveris.addAccount(jhonDoe);
+
         System.out.println(ledgerEveris);
 
-        Plugin jhonPlugin = new Plugin(jhonDoe);
-        Plugin janePlugin = new Plugin(janeDoe);
+        PluginConnection jhonPluginConnection =
+            new PluginConnection(jhonDoe.getAccountAddress(), jhonDoe.getPassword());
 
-        jhonPlugin.connect(ledgerEveris);
-        janePlugin.connect(ledgerEveris);
+        PluginConnection destinationPluginConnection =
+            new PluginConnection(janeDoe.getAccountAddress(), janeDoe.getPassword());
+
+        Plugin jhonDoePlugin = new Plugin(jhonPluginConnection);
+        Plugin janeDoePlugin = new Plugin(destinationPluginConnection);
+
+        jhonDoePlugin.connect(ledgerEveris);
+        janeDoePlugin.connect(ledgerEveris);
+
         System.out.println(ledgerEveris);
 
-        jhonPlugin.disconnect();
-        janePlugin.disconnect();
+        jhonDoePlugin.disconnect();
+        janeDoePlugin.disconnect();
+
         System.out.println(ledgerEveris);
     }
 }
