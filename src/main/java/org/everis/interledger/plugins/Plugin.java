@@ -41,7 +41,7 @@ public class Plugin {
      * @return boolean
      */
     public boolean isConnected() {
-        return this.ledger.isPluginConnected(this.pluginConnection.getPluginAccountAddress());
+        return this.ledger != null && this.ledger.isPluginConnected(this.pluginConnection.getPluginAccountAddress());
     }
 
     /**
@@ -49,7 +49,11 @@ public class Plugin {
      * @param newTransfer
      */
     public void sendTransfer(Transfer newTransfer) {
-        this.ledger.prepareTransaction(newTransfer);
+        if (this.isConnected()) {
+            this.ledger.prepareTransaction(newTransfer);
+        } else {
+            throw new RuntimeException("Plugin not connected");
+        }
     }
 
     /**
@@ -58,7 +62,11 @@ public class Plugin {
      * @param fulfillment
      */
     public void fulfillCondition(int transferId, Fulfillment fulfillment) {
-        this.ledger.fulfillCondition(transferId, fulfillment);
+        if (this.isConnected()) {
+            this.ledger.fulfillCondition(transferId, fulfillment);
+        } else {
+            throw new RuntimeException("Plugin not connected");
+        }
     }
 
     /**
@@ -66,7 +74,11 @@ public class Plugin {
      * @param transferId
      */
     public void rejectTransfer(int transferId) {
-        this.ledger.rejectTransfer(transferId);
+        if (this.isConnected()) {
+            this.ledger.rejectTransfer(transferId);
+        } else {
+            throw new RuntimeException("Plugin not connected");
+        }
     }
     
     @Override
