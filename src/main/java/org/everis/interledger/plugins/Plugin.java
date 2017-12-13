@@ -1,77 +1,81 @@
 package org.everis.interledger.plugins;
 
-import org.interledger.InterledgerAddress;
 import org.interledger.cryptoconditions.Fulfillment;
-import org.interledger.ilp.InterledgerProtocolError;
 
+/**
+ * Entity of Plugin to connect any sender, receiver or connector with a ledger.
+ */
 public class Plugin {
-    private PluginConnection linkedAccount;
+    private PluginConnection pluginConnection;
     private Ledger ledger;
+    private LedgerInfo ledgerInfo;
 
-    public Plugin(Account linkedAccount) {
-        this.ledger = null;
-        this.linkedAccount = new PluginConnection(linkedAccount);
+    /**
+     * Connector with a PluginConnection object.
+     * @param pluginConnection
+     */
+    public Plugin(PluginConnection pluginConnection) {
+        this.pluginConnection = pluginConnection;
     }
 
-    public LedgerInfo getLedgerInfo() {
-        return ledger.getInfo();
+    /**
+     * connect the plugin with the ledger in parameter.
+     * @param ledger
+     */
+    public void connect(Ledger ledger) {
+        this.ledgerInfo = ledger.connect(this.pluginConnection);
+        this.ledger = ledger;
     }
 
-    public InterledgerAddress getConnectorAccount() {
-        throw new RuntimeException("Not Implemented");
-    }
-
-//    BigInteger getConnectorBalance();
-
-    public void connect(Ledger aimedLedger) {
-        this.ledger = aimedLedger;
-        this.ledger.connect(this.linkedAccount);
-    }
-
+    /**
+     * disconnect the plugin from any ledger connected.
+     */
     public void disconnect() {
-        this.ledger.disconnect(this.linkedAccount.getAccount());
+        this.ledger.disconnect(this.pluginConnection.getPluginAccountAddress());
         this.ledger = null;
+        this.ledgerInfo = null;
     }
 
+    /**
+     * verify that the plugin is right connected to a ledger.
+     * @return boolean
+     */
     public boolean isConnected() {
-        return this.ledger != null && this.ledger.isPluginConnected(this.linkedAccount.getAccount());
+        return this.ledger.isPluginConnected(this.pluginConnection.getPluginAccountAddress());
     }
 
-//    Optional<Fulfillment> getFulfillment(TransferId transferId);
-
-    public void sendTransfer(Transfer transfer) {
-        if (this.isConnected()) {
-            this.ledger.prepareTransaction(transfer);
-        } else {
-            throw new RuntimeException("Can reach the connection");
-        }
+    /**
+     * call the prepare transfer method on the ledger.
+     * @param newTransfer
+     */
+    public void sendTransfer(Transfer newTransfer) {
+        this.ledger.prepareTransaction(newTransfer);
     }
 
-//    void sendMessage(Message message);
-
-    public void fulfillCondition(Transfer transfer, Fulfillment fulfillment) {
-        if (this.isConnected()) {
-            this.ledger.fulfillCondition(transfer, fulfillment);
-        } else {
-            throw new RuntimeException("Can reach the connection");
-        }
+    /**
+     * call the fulfill condition method on the ledger.
+     * @param transferId
+     * @param fulfillment
+     */
+    public void fulfillCondition(int transferId, Fulfillment fulfillment) {
+        this.ledger.fulfillCondition(transferId, fulfillment);
     }
 
-    public void rejectIncomingTransfer(Transfer transfer, InterledgerProtocolError rejectionReason) {
-
+    /**
+     * call the reject transfer method on the ledger.
+     * @param transferId
+     */
+    public void rejectTransfer(int transferId) {
+        this.ledger.rejectTransfer(transferId);
     }
-
-//    UUID addLedgerPluginEventHandler(LedgerPluginEventHandler eventHandler);
-//    void removeLedgerPluginEventHandler(UUID eventHandlerId);
-//    LedgerPluginEventEmitter getLedgerPluginEventEmitter();
-
+    
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("-PLUGIN-ACCOUNTS---------");
         str.append("\n-------------------------");
-        str.append("\n" +  this.ledger == null ? "-NO-LEDGER------------" : this.getLedgerInfo());
-        str.append("\nLinked Account " + this.linkedAccount.getAccount());
+        str.append("\n" +  this.ledger == null ? "-NO-LEDGER------------" : this.ledgerInfo);
+        str.append("\nLinked Account " + this.pluginConnection.getPluginAccountAddress());
         str.append("\n-------------------------");
         return str.toString();
     }
