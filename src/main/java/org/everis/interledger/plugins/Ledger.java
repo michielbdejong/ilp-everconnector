@@ -22,20 +22,13 @@ public class Ledger {
     private static Account HOLD_ACCOUNT;
 
     /**
-     * Construction of a default Ledger.
-     */
-    public Ledger() {
-        this("test1.everis.",  Monetary.getCurrency(Locale.UK));
-    }
-
-    /**
      * Constructor's ledger with a prefix and a currency unit.
      * @param ledgerPrefix
      * @param ledgerCurrency
      */
     public Ledger(String ledgerPrefix, CurrencyUnit ledgerCurrency) {
         this.ledgerAccounts = new HashMap<InterledgerAddress, Account>();
-        this.pluginsConnected = new ArrayList<InterledgerAddress>();
+        this.pluginsConnected = new HashMap<InterledgerAddress, PluginConnection>();
         this.ledgerTransfers = new HashMap<Integer, Transfer>();
         this.ledgerPrefix = InterledgerAddress.of(ledgerPrefix);
         this.ledgerCurrency = ledgerCurrency;
@@ -61,17 +54,18 @@ public class Ledger {
      * connect a plugin with the ledger via the plugin's account on the ledger.
      * @param pluginConnection
      */
-    public void connect(PluginConnection pluginConnection) {
+    public LedgerInfo connect(PluginConnection pluginConnection) {
         InterledgerAddress pluginAccountAddress = pluginConnection.getPluginAccountAddress();
         String password = pluginConnection.getPluginAccountPassword();
 
-        if(this.pluginsConnected.contains(pluginAccountAddress)) {
+        if(this.pluginsConnected.containsKey(pluginAccountAddress)) {
             throw new RuntimeException("plugin already connected");
         } else if(this.ledgerAccounts.containsKey(pluginAccountAddress)) {
             String accountPassword = this.ledgerAccounts.get(pluginAccountAddress).getPassword();
 
             if(password.equals(accountPassword)) {
-                this.pluginsConnected.add(pluginAccountAddress);
+                this.pluginsConnected.put(pluginAccountAddress, pluginConnection);
+                return new LedgerInfo(this.ledgerPrefix, this.ledgerCurrency);
             } else {
                 throw new RuntimeException("wrong password");
             }
@@ -164,7 +158,7 @@ public class Ledger {
             Transfer rejectedTransfer = this.ledgerTransfers.get(transferId);
             Account sourceAccount = this.getAccountByAddress(rejectedTransfer.getSourceAccount());
 
-            rejectedTransfer.rejectTransaction();
+            rejectedTransfer.setRejectedStatus();
             HOLD_ACCOUNT.debitAccount(rejectedTransfer.getAmount());
             sourceAccount.creditAccount(rejectedTransfer.getAmount());
         } else {
@@ -179,7 +173,7 @@ public class Ledger {
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append(this.info.toString());
+        str.append(new LedgerInfo(this.ledgerPrefix, this.ledgerCurrency));
         str.append("\n" + this.printAccounts());
         str.append("\n" + this.printPluginConnections());
         str.append("\n" + this.printTransactions() + "\n");

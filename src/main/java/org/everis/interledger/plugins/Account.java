@@ -23,7 +23,6 @@ public class Account {
         this.balance = balance;
     }
 
-
     /**
      * deposit the amount on the account.
      * @param amount

@@ -20,15 +20,6 @@ public class PluginConnection {
         this.pluginAccountPassword = pluginAccountPassword;
     }
 
-    /**
-     * Constructor with the linked account to this instance of the plugin. 
-     * @param linkedAccount Account which will be linked to this instance of the plugin. It will
-     *                      take the values of the account and call the base constructor.
-     */
-    public PluginConnection(Account linkedAccount) {
-        this(linkedAccount.getAccountAddress(), linkedAccount.getPassword());
-    }
-
     //getters and setters
     public InterledgerAddress getPluginAccountAddress() {
         return pluginAccountAddress;
