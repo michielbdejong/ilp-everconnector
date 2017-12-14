@@ -1,7 +1,5 @@
 package org.everis.interledger.tools.mockLedger;
 
-import org.everis.interledger.tools.mockLedger.LocalAccount;
-import org.everis.interledger.tools.mockLedger.MockInMemoryLedger;
 import org.interledger.InterledgerAddress;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,18 +18,25 @@ import static org.junit.jupiter.api.Assertions.*;
 // import org.interledger.cryptoconditions.PreimageSha256Condition;
 // import org.interledger.ilp.InterledgerPayment;
 
-class LedgerTest {
+class MockInMemoryLedgerTest {
 
+    final String LEDGER_PREFIX = "test1.pound.";
     MockInMemoryLedger ledger;
-    final LocalAccount connectorAct1 = new LocalAccount("connector1", "0000", 1000);
+    final LocalAccount connectorAct1 = new LocalAccount("connector1", "connector1", 1000);
+    final LocalAccount creditor1 = new LocalAccount("creditor1", "creditor1", 1000);
+    InterledgerAddress creditor1_ilp_address =  InterledgerAddress.of(LEDGER_PREFIX + creditor1.id);
+    final LocalAccount debitor1  = new LocalAccount("debitor1" , "debitor1" , 1000);
+    InterledgerAddress debitor1_ilp_address =  InterledgerAddress.of(LEDGER_PREFIX + debitor1.id);
 
     @BeforeEach
     void setUp() {
-        ledger = new MockInMemoryLedger(InterledgerAddress.of("test1.pound"), Monetary.getCurrency(Locale.UK));
+        ledger = new MockInMemoryLedger(InterledgerAddress.of(LEDGER_PREFIX), Monetary.getCurrency(Locale.UK));
         // By Default the HOLD_ACCOUNT must be present
-        assertEquals(ledger.getLedgerAccounts().keySet().size(), 1);
-        ledger.addAccount(connectorAct1);
-        assertEquals(ledger.getLedgerAccounts().keySet().size(), 2);
+        assertEquals(ledger.debugTotalAccounts(), 1);
+        ledger.internalLedger.addAccount(connectorAct1);
+        ledger.internalLedger.addAccount(creditor1);
+        ledger.internalLedger.addAccount(debitor1);
+        assertEquals(ledger.debugTotalAccounts(), 4);
     }
 
     @AfterEach
@@ -57,53 +62,24 @@ class LedgerTest {
 //
 //        System.out.println(ledgerEveris);
 
-    @Test
-    void connect() {
-    }
 
     @Test
-    void disconnect() {
+    void executeLocalTransfer() {
+        int creditor1_initialBalance = ledger.getAccountByILPAddress(creditor1_ilp_address).getBalance();
+        int tx_amount = 100;
+        LedgerTransfer tx = new LedgerTransfer( creditor1, debitor1, tx_amount );
+        ledger.internalLedger.executeTransfer(tx);
+        int creditor1_finalBalance = ledger.getAccountByILPAddress(creditor1_ilp_address).getBalance();
+        assertEquals( creditor1_finalBalance, creditor1_initialBalance - tx_amount);
     }
 
-    @Test
-    void isPluginConnected() {
-    }
-
-    @Test
-    void getAccountByAddress() {
-    }
-
-    @Test
-    void prepareTransaction() {
-    }
-
-    @Test
-    void fulfillCondition() {
-    }
-
-    @Test
-    void rejectTransfer() {
-    }
-
-    @Test
-    void getHoldAccount() {
-    }
 
         /**
      * Test of a simple transaction. We only handle the simple way, without taking care about
      * conditions or fulfillments.
      */
 ///////    private static void testSimpleTransaction() {
-///////         System.out.println("Simple Transaction Test ---------------------------------------------");
-///////         Ledger ledgerEveris = new Ledger("test1.pound", Monetary.getCurrency(Locale.UK));
-///////
-///////         Account sourceAccount = new Account(InterledgerAddress.of("test1.everis.jhon"),
-///////             "0000", 1000);
-///////         Account destinationAccount = new Account(InterledgerAddress.of("test1.everis.jane"),
-///////             "1111", 0);
-///////
-///////         ledgerEveris.addAccount(sourceAccount);
-///////         ledgerEveris.addAccount(destinationAccount);
+
 ///////
 ///////         PluginConnection sourcePluginConnection =
 ///////             new PluginConnection(sourceAccount.getAccountAddress(), sourceAccount.getPassword());

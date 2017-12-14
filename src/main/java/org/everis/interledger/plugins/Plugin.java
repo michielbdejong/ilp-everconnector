@@ -15,10 +15,11 @@ import java.util.Locale;
  */
 public class Plugin {
 
+    final private LedgerConnection ledgerConnection;
     private MockInMemoryLedger ledger;
-    private LedgerInfo ledgerInfo;
 
-    private LedgerConnection ledgerConnection;
+    private LedgerInfo ledgerInfo = null; // cache info. It's retrieved during connection.
+
 
     /**
      * Keeps credentials and any other usefull info to help connect to the ledger
@@ -28,7 +29,7 @@ public class Plugin {
      *
      * Once connected info about the remote ledger can be fetched throught LedgerInfo (connected_)ledgder.getInfo();
      */
-    class LedgerConnection {
+    static class LedgerConnection {
         final String host; // not used, just left as example data
         final String port; // not used, just left as example data
         final String accound_id;
@@ -46,9 +47,14 @@ public class Plugin {
 
     /**
      * Connector with a PluginConnection object.
+     * @param ledger: Represent an in-memory-ledger that must exists before the ledger can connect
+     *                It can be created at startup (static void main ...) by injection from Spring, ...
+     *                But the important point is that a ledger is instantiated first, then the plugin
+     *                will try to connect to it.
      * @param ledgerConnection
      */
-    public Plugin(LedgerConnection ledgerConnection) {
+    public Plugin(MockInMemoryLedger ledger, LedgerConnection ledgerConnection) {
+        this.ledger = ledger;
         this.ledgerConnection = ledgerConnection;
     }
 
@@ -63,33 +69,11 @@ public class Plugin {
      * @param connector_password_on_ledger
      * @return
      */
-    public static MockInMemoryLedger mockNetworkConnect(String host, String port, InterledgerAddress nodeAddress, String connector_account_on_ledger, String connector_password_on_ledger) {
-        MockInMemoryLedger mockLedger = new MockInMemoryLedger(InterledgerAddress.of("test1.pound"), Monetary.getCurrency(Locale.UK));
-        if (true)
-        {
-            // More mock code. Let's create a new local account with the plugin provided credentials
-            // =>  That means connection will always success. In a real scenario the connector account must have
-            // been added previously to the ledger, and the connection can success or fail if the plugin provided credentials
-            // are OK or KO.
-            LocalAccount newConnectorAccount = new LocalAccount(connector_account_on_ledger, connector_password_on_ledger, 1000000);
-            mockLedger.addAccount(newConnectorAccount);
-        }
-        // Next line will fail if credentials do not match with registered credentials in "remote" ledger
-        mockLedger.onConnectRequest(nodeAddress, connector_account_on_ledger, connector_password_on_ledger);
-        return  mockLedger;
-    }
-
     /**
      * connect the plugin with the ledger in parameter.
      */
     public void connect() {
-        this.ledger = mockNetworkConnect(
-                ledgerConnection.host,
-                ledgerConnection.host,
-                ledgerConnection.connectorAddress,
-                ledgerConnection.accound_id,
-                ledgerConnection.pass);
-
+        this.ledger.onILPConnectRequest(ledgerConnection.connectorAddress, ledgerConnection.accound_id, ledgerConnection.pass);
         this.ledgerInfo = ledger.getInfo();
     }
 
@@ -98,8 +82,7 @@ public class Plugin {
      */
     public void disconnect() {
         this.ledger.disconnect(this.ledgerConnection.connectorAddress);
-        this.ledger = null;
-        this.ledgerInfo = null;
+        this.ledgerInfo = null; // <-- Ummm
     }
 
     /**
@@ -107,7 +90,7 @@ public class Plugin {
      * @return boolean
      */
     public boolean isConnected() {
-        return this.ledger !=null && this.ledger.isPluginConnected(this.ledgerConnection.connectorAddress);
+        return this.ledgerInfo != null;
     }
 
     /**

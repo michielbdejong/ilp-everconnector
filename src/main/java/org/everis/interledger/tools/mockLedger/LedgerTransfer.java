@@ -12,6 +12,9 @@ public class LedgerTransfer {
     public final int ammount;
 
     LedgerTransfer(LocalAccount from, LocalAccount to, int ammount){
+        if (ammount <= 0) {
+            throw new RuntimeException("ammount must be bigger than ZERO");
+        }
         this.from = from;
         this.to   = to;
         this.ammount = ammount;

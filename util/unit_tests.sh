@@ -9,7 +9,8 @@ if [ ! -f pom.xml ] ; then echo "Not pom.xml file found in current directory" ; 
 
 if [ -z ${MVN_OPTS+x} ]; then MVN_OPTS=""; fi
 
-mvn $MVN_OPTS test
+mvn $MVN_OPTS test-compile test
+
 
 CWD=`pwd`
 cat << EOF
