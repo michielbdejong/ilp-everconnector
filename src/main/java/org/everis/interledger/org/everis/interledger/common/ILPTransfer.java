@@ -1,4 +1,4 @@
-package org.everis.interledger.plugins;
+package org.everis.interledger.org.everis.interledger.common;
 
 import java.security.Timestamp;
 

@@ -1,5 +1,6 @@
 package org.everis.interledger.plugins;
 
+import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.org.everis.interledger.common.LedgerInfo;
 import org.everis.interledger.tools.mockLedger.LocalAccount;
 import org.everis.interledger.tools.mockLedger.MockInMemoryLedger;

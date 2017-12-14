@@ -1,7 +1,7 @@
 package org.everis.interledger.tools.mockLedger;
 
 import org.everis.interledger.org.everis.interledger.common.LedgerInfo;
-import org.everis.interledger.plugins.ILPTransfer;
+import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.interledger.InterledgerAddress;
 import org.interledger.cryptoconditions.Fulfillment;
 

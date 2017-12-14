@@ -2,6 +2,7 @@ package org.everis.interledger.plugins;
 
 import org.everis.interledger.tools.mockLedger.LocalAccount;
 import org.everis.interledger.tools.mockLedger.MockInMemoryLedger;
+import org.interledger.InterledgerAddress;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class LedgerTest {
 
     @BeforeEach
     void setUp() {
-        ledger = new MockInMemoryLedger("test1.pound", Monetary.getCurrency(Locale.UK));
+        ledger = new MockInMemoryLedger(InterledgerAddress.of("test1.pound"), Monetary.getCurrency(Locale.UK));
         // By Default the HOLD_ACCOUNT must be present
         assertEquals(ledger.getLedgerAccounts().keySet().size(), 1);
         ledger.addAccount(connectorAct1);
