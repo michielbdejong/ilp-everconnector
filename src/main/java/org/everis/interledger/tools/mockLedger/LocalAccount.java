@@ -1,24 +1,24 @@
-package org.everis.interledger.plugins;
+package org.everis.interledger.tools.mockLedger;
 
 import org.interledger.InterledgerAddress;
 
 /**
  * entity representing an account with an ILP address, a password and a balance.
  */
-public class Account {
-    private InterledgerAddress accountAddress;
-    private String password;
-    private int balance;
+public class LocalAccount {
+    final public String id;
+    final public String password;
+    private int /* TODO:(0) Move to BigInteger*/ balance;
 
 
     /**
      * Constructor for an account with an ILP address, a password and a balance.
-     * @param accountAddress
+     * @param id
      * @param password
      * @param balance
      */
-    public Account(InterledgerAddress accountAddress, String password, int balance) {
-        this.accountAddress = accountAddress;
+    public LocalAccount(String id, String password, int balance) {
+        this.id = id;
         this.password = password;
         this.balance = balance;
     }
@@ -37,21 +37,9 @@ public class Account {
         this.balance -= amount;
     }
 
-    //getters ans setters
-    public InterledgerAddress getAccountAddress() {
-        return accountAddress;
-    }
-
-    public void setAccountAddress(InterledgerAddress accountAddress) {
-        this.accountAddress = accountAddress;
-    }
 
     public String getPassword() {
         return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 
     public int getBalance() {
@@ -61,7 +49,7 @@ public class Account {
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append(this.accountAddress + " | " + balance);
+        str.append(this.id).append(" | ").append(balance);
         return str.toString();
     }
 }

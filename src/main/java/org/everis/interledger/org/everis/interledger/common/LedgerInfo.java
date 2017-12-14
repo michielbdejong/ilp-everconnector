@@ -1,4 +1,4 @@
-package org.everis.interledger.plugins;
+package org.everis.interledger.org.everis.interledger.common;
 
 import org.interledger.InterledgerAddress;
 
@@ -8,8 +8,8 @@ import javax.money.CurrencyUnit;
  * Entity reference of the ledger with the aim to be store in Plugin once connected
  */
 public class LedgerInfo {
-    private InterledgerAddress ledgerPrefix;
-    private CurrencyUnit ledgerCurency;
+    private final InterledgerAddress ledgerPrefix;
+    private final CurrencyUnit ledgerCurency;
 
 
     /**
@@ -27,16 +27,8 @@ public class LedgerInfo {
         return ledgerPrefix;
     }
 
-    public void setLedgerPrefix(InterledgerAddress ledgerPrefix) {
-        this.ledgerPrefix = ledgerPrefix;
-    }
-
     public CurrencyUnit getLedgerCurency() {
         return ledgerCurency;
-    }
-
-    public void setLedgerCurency(CurrencyUnit ledgerCurency) {
-        this.ledgerCurency = ledgerCurency;
     }
 
     @Override
