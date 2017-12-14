@@ -106,7 +106,7 @@ public class Plugin {
      * @param transferId
      * @param fulfillment
      */
-    public void fulfillCondition(int transferId, Fulfillment fulfillment) {
+    public void fulfillCondition(String transferId, Fulfillment fulfillment) {
         this.ledger.fulfillCondition(transferId, fulfillment);
     }
 

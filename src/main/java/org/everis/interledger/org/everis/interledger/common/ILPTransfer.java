@@ -110,6 +110,7 @@ public class ILPTransfer {
         if (!fulfillment.verify(condition, new byte[] {})) {
             throw new RuntimeException("fulfillment does NOT verify transfer condition");
         }
+        this.status = other.status;
     }
 
     public String getUUID() {
@@ -131,9 +132,9 @@ public class ILPTransfer {
     public void setPreparedStatus() throws RuntimeException {
         if (this.status != null) {
             throw new RuntimeException(ErrorMessages.FLOW_STATUS);
-        } else {
-            this.status = TransferStatus.PREPARED;
         }
+        this.status = TransferStatus.PREPARED;
+System.out.println("deleteme this.status "+this.status.toString());
     }
 
     /**
@@ -141,11 +142,12 @@ public class ILPTransfer {
      * @throws RuntimeException Throws the exception in case of wrong flow of status.
      */
     public void setExecutedStatus() throws RuntimeException {
+System.out.println("deleteme this.status "+this.status);
         if (this.status != TransferStatus.PREPARED) {
             throw new RuntimeException(ErrorMessages.FLOW_STATUS);
-        } else {
-            this.status = TransferStatus.EXECUTED;
         }
+        this.status = TransferStatus.EXECUTED;
+System.out.println("deleteme this.status "+this.status.toString());
     }
 
     /**

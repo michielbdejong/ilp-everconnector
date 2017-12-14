@@ -184,10 +184,10 @@ public class MockInMemoryLedger {
         LocalAccount sourceAccount = getAccountByILPAddress(newTransfer.getSourceAccount());
 
         // Atomic {
+        newTransfer.setPreparedStatus();
         this.ilpPendingTransfers.put(newTransfer.getUUID(), newTransfer);
         sourceAccount.debitAccount(newTransfer.getAmount());
         ILP_HOLD_ACCOUNT.creditAccount(newTransfer.getAmount());
-        newTransfer.setPreparedStatus();
         // }
     }
 
@@ -196,7 +196,7 @@ public class MockInMemoryLedger {
      * @param transferId
      * @param fulfillment
      */
-    public void fulfillCondition(int transferId, Fulfillment fulfillment) {
+    public void fulfillCondition(String transferId, Fulfillment fulfillment) {
         if(!this.ilpPendingTransfers.containsKey(transferId)) {
             throw new RuntimeException("transfer not exist");
         }
