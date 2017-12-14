@@ -1,4 +1,4 @@
-package org.everis.interledger.plugins;
+package org.everis.interledger.tools.mockLedger;
 
 import org.everis.interledger.tools.mockLedger.LocalAccount;
 import org.everis.interledger.tools.mockLedger.MockInMemoryLedger;

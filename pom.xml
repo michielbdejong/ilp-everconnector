@@ -7,6 +7,14 @@
     <groupId>org.everis.interledger</groupId>
     <artifactId>plugins</artifactId>
     <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>1.8</java.version>
+        <junit.jupiter.version>5.0.0-M3</junit.jupiter.version>
+        <junit.platform.version>1.0.0-M3</junit.platform.version>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -25,19 +33,13 @@
                     <dependency>
                         <groupId>org.junit.platform</groupId>
                         <artifactId>junit-platform-surefire-provider</artifactId>
-                        <version>1.0.2</version>
-                    </dependency>
-
-                    <dependency>
-                        <groupId>org.junit.jupiter</groupId>
-                        <artifactId>junit-jupiter-engine</artifactId>
-                        <version>5.0.2</version>
+                        <version>1.0.0-M3</version>
                     </dependency>
                 </dependencies>
             </plugin>
-
         </plugins>
     </build>
+
     <dependencies>
         <dependency>
             <groupId>org.interledger</groupId>
@@ -56,17 +58,20 @@
             <artifactId>moneta</artifactId>
             <version>1.1</version>
         </dependency>
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>6.11</version>
-        </dependency>
+
+        <!-- test dependencies start {  -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>RELEASE</version>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.0.0-M3</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-runner</artifactId>
+            <version>${junit.platform.version}</version>
+        </dependency>
+        <!-- test dependencies end }  -->
     </dependencies>
 
 
