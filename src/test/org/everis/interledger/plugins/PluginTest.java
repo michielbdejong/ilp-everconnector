@@ -2,7 +2,7 @@ package org.everis.interledger.plugins;
 
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.tools.mockLedger.LocalAccount;
-import org.everis.interledger.tools.mockLedger.MockInMemoryLedger;
+import org.everis.interledger.tools.mockLedger.LocalLedgerILPAdaptor;
 import org.interledger.InterledgerAddress;
 import org.interledger.cryptoconditions.Fulfillment;
 import org.interledger.cryptoconditions.PreimageSha256Fulfillment;
@@ -24,7 +24,7 @@ class PluginTest {
     final static String LEDGER1_PREFIX = "test1.pound.";
     final static String LEDGER2_PREFIX = "test1.rupias.";
 
-    MockInMemoryLedger bankOfIngland, bankOfLepe;
+    LocalLedgerILPAdaptor bankOfIngland, bankOfLepe;
 
     Plugin plugin1;
     Plugin plugin2;
@@ -32,10 +32,10 @@ class PluginTest {
     @BeforeEach
     void setUp() {
         // Create two new banks.
-        bankOfIngland = new MockInMemoryLedger(
+        bankOfIngland = new LocalLedgerILPAdaptor(
             InterledgerAddress.of(LEDGER1_PREFIX), Monetary.getCurrency("GBP"));
 
-        bankOfLepe = new MockInMemoryLedger(
+        bankOfLepe = new LocalLedgerILPAdaptor(
             InterledgerAddress.of(LEDGER2_PREFIX), Monetary.getCurrency("EUR"));
 
         // Register connector accounts in both ledgers
@@ -80,7 +80,13 @@ class PluginTest {
 
     @Test
     void sendTransfer() {
-        // TODO:(0) DOUBT: The plugin <-> ledger must handler ILPTransfer objects or just localTransfers + InterledgerPayments
+        /*
+         * As of 2017-12-115 this test is not 100% realistict. Usually no ilp transfer with cryptocondition
+         * would be used to transfer between two local accounts in the same ledger. The connector
+         * will detect that senders and receivers are on the same ledger and execute without intermediate HOLD
+         * account. (It doesn't make sense because local transfer from account to account is 100% safe, only
+         * remote transfers between different ledgers need cryptoconditions and fulfillments safety guards)
+         */
         // InterledgerAddress connector1Addr = InterledgerAddress.of(LEDGER1_PREFIX+ID_CONNECTOR_EVERIS);
         InterledgerAddress srcAccountAddr = InterledgerAddress.of(LEDGER1_PREFIX+"user1_1");
         InterledgerAddress dstAccountAddr = InterledgerAddress.of(LEDGER1_PREFIX+"user1_2");
@@ -126,12 +132,5 @@ System.out.println( "localTransfers:\n" + bankOfIngland.debugDumpLastLocalTransf
         assertEquals(initial_dstBalance + amount, dstBalance_fulfilled);
     }
 
-    @Test
-    void fulfillCondition() {
-    }
-
-    @Test
-    void rejectTransfer() {
-    }
 
 }

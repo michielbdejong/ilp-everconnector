@@ -2,13 +2,9 @@ package org.everis.interledger.plugins;
 
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.org.everis.interledger.common.LedgerInfo;
-import org.everis.interledger.tools.mockLedger.LocalAccount;
-import org.everis.interledger.tools.mockLedger.MockInMemoryLedger;
+import org.everis.interledger.tools.mockLedger.LocalLedgerILPAdaptor;
 import org.interledger.InterledgerAddress;
 import org.interledger.cryptoconditions.Fulfillment;
-
-import javax.money.Monetary;
-import java.util.Locale;
 
 /**
  * Entity of Plugin to connect any sender, receiver or connector with a ledger.
@@ -16,7 +12,7 @@ import java.util.Locale;
 public class Plugin {
 
     final private LedgerConnection ledgerConnection;
-    private MockInMemoryLedger ledger;
+    private LocalLedgerILPAdaptor ledger;
 
     private LedgerInfo ledgerInfo = null; // cache info. It's retrieved during connection.
 
@@ -53,7 +49,7 @@ public class Plugin {
      *                will try to connect to it.
      * @param ledgerConnection
      */
-    public Plugin(MockInMemoryLedger ledger, LedgerConnection ledgerConnection) {
+    public Plugin(LocalLedgerILPAdaptor ledger, LedgerConnection ledgerConnection) {
         this.ledger = ledger;
         this.ledgerConnection = ledgerConnection;
     }

@@ -4,7 +4,8 @@ package org.everis.interledger.tools.mockLedger;
 /**
  * Local Ledger transfer.
  * This transfer is not aware at all of ILP transfers.
- *
+ * A LocalTransfer is an intention to move money. Money it's not moved until
+ * LocalLedger.executeTransfer(localTransfer) end successfully without errors
  */
 public class LocalTransfer {
     public final LocalAccount from;

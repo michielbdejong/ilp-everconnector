@@ -7,8 +7,6 @@ import org.interledger.cryptoconditions.Condition;
 import org.interledger.cryptoconditions.Fulfillment;
 import org.interledger.ilp.InterledgerPayment;
 
-// TODO:(0) Move Transfer, Account, LedgerInfo, Plugin, PluginConnection,... to data packager
-// TODO:(0) Rename as ILPTransfer
 public class ILPTransfer {
 
     private class ErrorMessages {
@@ -33,7 +31,7 @@ public class ILPTransfer {
     private final Integer amount;
 
     private Timestamp expiration;
-    // TODO:(0) move status "outside" transfer or make final
+    // TODO:(1) make final?
     private TransferStatus status;
 
     private final InterledgerPayment payment;
@@ -134,7 +132,6 @@ public class ILPTransfer {
             throw new RuntimeException(ErrorMessages.FLOW_STATUS);
         }
         this.status = TransferStatus.PREPARED;
-System.out.println("deleteme this.status "+this.status.toString());
     }
 
     /**
@@ -142,12 +139,10 @@ System.out.println("deleteme this.status "+this.status.toString());
      * @throws RuntimeException Throws the exception in case of wrong flow of status.
      */
     public void setExecutedStatus() throws RuntimeException {
-System.out.println("deleteme this.status "+this.status);
         if (this.status != TransferStatus.PREPARED) {
             throw new RuntimeException(ErrorMessages.FLOW_STATUS);
         }
         this.status = TransferStatus.EXECUTED;
-System.out.println("deleteme this.status "+this.status.toString());
     }
 
     /**
