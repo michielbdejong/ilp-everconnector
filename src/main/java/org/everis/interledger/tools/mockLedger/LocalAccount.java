@@ -1,7 +1,5 @@
 package org.everis.interledger.tools.mockLedger;
 
-import org.interledger.InterledgerAddress;
-
 /**
  * entity representing an account with an ILP address, a password and a balance.
  */
@@ -22,19 +20,8 @@ public class LocalAccount {
         this.password = password;
         this.balance = balance;
     }
-
-    /**
-     * deposit the amount on the account.
-     * @param amount
-     */
-    public void creditAccount(int amount) { this.balance += amount;}
-
-    /**
-     * withdraw the amount on the account.
-     * @param amount
-     */
-    public void debitAccount(int amount) {
-        this.balance -= amount;
+    public LocalAccount(LocalAccount other, int newBalance) {
+        this(other.id, other.password, newBalance);
     }
 
 
@@ -51,5 +38,18 @@ public class LocalAccount {
         StringBuilder str = new StringBuilder();
         str.append(this.id).append(" | ").append(balance);
         return str.toString();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        boolean result =  false;
+        if (other == this) return true;
+        if (other == null) return false;
+        if (! (other instanceof  LocalAccount)) return false;
+        LocalAccount lOther = (LocalAccount)other;
+        return
+            lOther.id.equals(id) &&
+            lOther.password.equals(password) &&
+            lOther.balance == balance;
     }
 }

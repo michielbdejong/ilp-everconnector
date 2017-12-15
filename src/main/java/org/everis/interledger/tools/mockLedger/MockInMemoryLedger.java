@@ -43,8 +43,26 @@ public class MockInMemoryLedger {
     class InternalLedger {
         private final Map<String /* id */, LocalAccount> ledgerAccounts;
         private final CurrencyUnit ledgerCurrency;
-        // Keeps track of local ledger Transfers
-        private final List<LedgerTransfer> logOfLocalTransfers = new ArrayList<LedgerTransfer>();
+        // TXLog used to store initial and final balances associated to a TX
+        private class TXLog {
+            final public int initialSrcAmount;
+            final public int initialDstAmount;
+            final public LocalTransfer tx;
+            final public int finalSrcAmount;
+            final public int finalDstAmount;
+
+            TXLog(int initialSrcAmount, int initialDstAmount, LocalTransfer tx, int finalSrcAmount, int finalDstAmount) {
+                if (initialSrcAmount + initialDstAmount != finalSrcAmount + finalDstAmount) {
+                    throw new RuntimeException("Initial and final balances do NOT match");
+                }
+                this.initialSrcAmount = initialSrcAmount;
+                this.initialDstAmount = initialDstAmount;
+                this.tx               = tx;
+                this.finalSrcAmount   = finalSrcAmount;
+                this.finalDstAmount   = finalDstAmount;
+            }
+        }
+        private final List<TXLog> logOfLocalTransfers = new ArrayList<TXLog>();
 
         InternalLedger(CurrencyUnit ledgerCurrency) {
             this.ledgerAccounts = new HashMap<String /*id */, LocalAccount>();
@@ -68,22 +86,57 @@ public class MockInMemoryLedger {
             return this.ledgerAccounts.get(accountId);
         }
 
-        public void executeTransfer(LedgerTransfer internalTransfer) {
-            if(!this.ledgerAccounts.containsKey(internalTransfer.from.id)) {
+        public void executeTransfer(LocalTransfer internalTransfer) {
+            String keyFrom = internalTransfer.from.id;
+            String keyTo   = internalTransfer.to  .id;
+            if(! this.ledgerAccounts.containsKey(keyFrom)) {
                 throw new RuntimeException("internal transfer creditor (from) '"+internalTransfer.from.id+"' not found" );
             }
-            if(!this.ledgerAccounts.containsKey(internalTransfer.to.id)) {
+            if(!this.ledgerAccounts.containsKey(keyTo)) {
                 throw new RuntimeException("internal transfer debitor (to) '"+internalTransfer.from.id+"' not found" );
             }
-            if (internalTransfer.from.getBalance() < internalTransfer.ammount ) {
+            LocalAccount from =  this.ledgerAccounts.get(keyFrom);
+            LocalAccount to   =  this.ledgerAccounts.get(keyTo  );
+            if (from.getBalance() < internalTransfer.ammount ) {
                 throw new RuntimeException("not enough funds");
             }
-            internalTransfer.from.debitAccount(internalTransfer.ammount);
-            internalTransfer.to.creditAccount(internalTransfer.ammount);
-            logOfLocalTransfers.add(internalTransfer);
+            // "Move money from account to account". Overwrite OLD registries
+            LocalAccount newFrom = new LocalAccount(from, from.getBalance() - internalTransfer.ammount);
+            LocalAccount newTo   = new LocalAccount(to  , to  .getBalance() + internalTransfer.ammount);
+
+            TXLog txLog = new TXLog(from.getBalance(), to.getBalance(), internalTransfer, newFrom.getBalance(), newTo.getBalance() );
+            this.ledgerAccounts.put(keyFrom, newFrom);
+            this.ledgerAccounts.put(keyTo  , newTo  );
+            logOfLocalTransfers.add(txLog);
         }
 
     }
+
+    private StringBuffer TXLogToStringBuffer(InternalLedger.TXLog log) {
+        StringBuffer result = new StringBuffer();
+        result.append("{\n")
+              .append("Initial src/dst balance: ")
+              .append(log.initialSrcAmount).append("/").append(log.initialDstAmount).append("\n")
+              .append(log.tx.from).append(" -> ").append(log.tx.ammount).append(" -> ").append(log.tx.to).append("\n")
+              .append("Final   src/dst balance: ")
+              .append(log.finalSrcAmount)  .append("/").append(log.finalDstAmount).append("\n")
+              .append("}") ;
+        return result;
+    }
+
+    public StringBuffer debugDumpOrderedListOfLocalTransfers() {
+        StringBuffer result = new StringBuffer();
+        for (InternalLedger.TXLog log : internalLedger.logOfLocalTransfers) {
+            result.append(TXLogToStringBuffer(log)) ;
+        }
+        return result;
+    }
+    public StringBuffer debugDumpLastLocalTransfers() {
+        int last_idx = internalLedger.logOfLocalTransfers.size()-1;
+        InternalLedger.TXLog log = internalLedger.logOfLocalTransfers.get(last_idx);
+        return TXLogToStringBuffer(log) ;
+    }
+
 
     public int debugTotalAccounts(){
        return this.internalLedger.ledgerAccounts.keySet().size();
@@ -101,7 +154,7 @@ public class MockInMemoryLedger {
     private final Map<InterledgerAddress, ConnectedPlugin> pluginsConnected;
     // Keeps track of out-standing ILP Transfers (prepared but not yet executed or rejected)
     private final Map<String, ILPTransfer> ilpPendingTransfers;
-    private final LocalAccount ILP_HOLD_ACCOUNT;
+    private final String ID_HOLD_ACCOUNT =  "@ILP_HOLD_ACCOUNT@";
 
     public LedgerInfo getInfo(){
         return new LedgerInfo(this.ledgerPrefix, this.internalLedger.ledgerCurrency);
@@ -119,8 +172,8 @@ public class MockInMemoryLedger {
         }
         internalLedger = new InternalLedger(ledgerCurrency);
 
-        this.ILP_HOLD_ACCOUNT = new LocalAccount("@ILP_HOLD_ACCOUNT@", "password", 0);
-        internalLedger.addAccount(this.ILP_HOLD_ACCOUNT);
+        LocalAccount ILP_HOLD_ACCOUNT = new LocalAccount(ID_HOLD_ACCOUNT, "password", 0);
+        internalLedger.addAccount(ILP_HOLD_ACCOUNT);
 
         this.pluginsConnected = new HashMap<InterledgerAddress, ConnectedPlugin>();
         this.ilpPendingTransfers = new HashMap<String, ILPTransfer>();
@@ -165,6 +218,14 @@ public class MockInMemoryLedger {
      * @return Account
      */
     public LocalAccount getAccountByILPAddress(InterledgerAddress accountAddress) {
+        if (! accountAddress.getValue().startsWith(this.ledgerPrefix.getValue())) {
+            throw new RuntimeException(
+                "Interledger Address does not correspond to a local ledger address. '"
+              + accountAddress.getValue()
+              + "' does not match ledger prefix "+this.ledgerPrefix.getValue()
+
+              );
+        }
         // The local account id is just the ilp ledger account  without the ledger prefix
         String local_account_id = accountAddress.getValue().replace(this.ledgerPrefix.getValue(),"");
         return this.internalLedger.getLocalAccount(local_account_id);
@@ -183,11 +244,29 @@ public class MockInMemoryLedger {
         }
         LocalAccount sourceAccount = getAccountByILPAddress(newTransfer.getSourceAccount());
 
+        boolean ilpSourceIsLocal = (newTransfer.getSourceAccount().
+                getValue().startsWith(this.ledgerPrefix.getValue()));
+
+        if ( !ilpSourceIsLocal) {
+            // This could be caused by a wrong routing, a programming error or some cracker
+            throw new RuntimeException("The ILP source account doesn't match a local account in this ledger");
+        }
+
+        boolean ilpDestinationIsLocal = (newTransfer.getDestinationAccount().
+                getValue().startsWith(this.ledgerPrefix.getValue()));
+        if (!ilpDestinationIsLocal) {
+            /* TODO:(0) Implement forwarding. That means:
+             *  - Searching a connected plugin that can forward the payment.
+             *  - Notifying the plugin to "forward the payment" to next ledger / trust-line
+             */
+            throw new RuntimeException("ILP Destination is NOT local but forwarding NOT yet implemented");
+        }
+
         // Atomic {
         newTransfer.setPreparedStatus();
         this.ilpPendingTransfers.put(newTransfer.getUUID(), newTransfer);
-        sourceAccount.debitAccount(newTransfer.getAmount());
-        ILP_HOLD_ACCOUNT.creditAccount(newTransfer.getAmount());
+        LocalTransfer tx = new LocalTransfer(sourceAccount, this.getHoldAccount(), newTransfer.getAmount());
+        this.internalLedger.executeTransfer(tx);
         // }
     }
 
@@ -210,8 +289,8 @@ public class MockInMemoryLedger {
         LocalAccount destinationAccount = this.getAccountByILPAddress(transfer.getDestinationAccount());
         // NOTE: Next operations must be atomic or rollback
         {
-            ILP_HOLD_ACCOUNT.debitAccount(transfer.getAmount());
-            destinationAccount.creditAccount(transfer.getAmount());
+            LocalTransfer tx = new LocalTransfer(this.getHoldAccount(), destinationAccount, transfer.getAmount());
+            this.internalLedger.executeTransfer(tx);
             transfer.setExecutedStatus();
         }
     }
@@ -226,15 +305,15 @@ public class MockInMemoryLedger {
             LocalAccount sourceAccount = this.getAccountByILPAddress(rejectedTransfer.getSourceAccount());
 
             rejectedTransfer.setRejectedStatus();
-            ILP_HOLD_ACCOUNT.debitAccount(rejectedTransfer.getAmount());
-            sourceAccount.creditAccount(rejectedTransfer.getAmount());
+            LocalTransfer tx = new LocalTransfer(this.getHoldAccount(), sourceAccount, rejectedTransfer.getAmount());
+            this.internalLedger.executeTransfer(tx);
         } else {
             throw new RuntimeException("transfer not exist");
         }
     }
 
     public LocalAccount getHoldAccount() {
-        return ILP_HOLD_ACCOUNT;
+        return this.internalLedger.getLocalAccount(ID_HOLD_ACCOUNT);
     }
 
     @Override
@@ -250,7 +329,7 @@ public class MockInMemoryLedger {
     public String printAccounts() {
         StringBuilder str = new StringBuilder();
         str.append("-LEDGER-ACCOUNTS---------");
-        str.append("\n" + ILP_HOLD_ACCOUNT);
+        str.append("\n" + this.getHoldAccount());
         str.append("\n-------------------------");
         if (this.debugTotalAccounts() != 0) {
             for (String addressAccount : this.internalLedger.ledgerAccounts.keySet()) {

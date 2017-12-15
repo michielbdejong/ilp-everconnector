@@ -5,7 +5,6 @@ import org.everis.interledger.tools.mockLedger.LocalAccount;
 import org.everis.interledger.tools.mockLedger.MockInMemoryLedger;
 import org.interledger.InterledgerAddress;
 import org.interledger.cryptoconditions.Fulfillment;
-import org.interledger.cryptoconditions.PrefixSha256Fulfillment;
 import org.interledger.cryptoconditions.PreimageSha256Fulfillment;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,7 +14,6 @@ import org.interledger.ilp.InterledgerPayment;
 import javax.money.Monetary;
 
 import java.math.BigInteger;
-import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -83,8 +81,8 @@ class PluginTest {
     @Test
     void sendTransfer() {
         // TODO:(0) DOUBT: The plugin <-> ledger must handler ILPTransfer objects or just localTransfers + InterledgerPayments
-        InterledgerAddress connector1Addr = InterledgerAddress.of(LEDGER1_PREFIX+ID_CONNECTOR_EVERIS);
-        InterledgerAddress srcAccountAddr = InterledgerAddress.of(LEDGER1_PREFIX+"user1_2");
+        // InterledgerAddress connector1Addr = InterledgerAddress.of(LEDGER1_PREFIX+ID_CONNECTOR_EVERIS);
+        InterledgerAddress srcAccountAddr = InterledgerAddress.of(LEDGER1_PREFIX+"user1_1");
         InterledgerAddress dstAccountAddr = InterledgerAddress.of(LEDGER1_PREFIX+"user1_2");
         byte[] preimage = "LEPE_IS_COOL".getBytes();
         Fulfillment fulfillment = new PreimageSha256Fulfillment(preimage);
@@ -102,20 +100,30 @@ class PluginTest {
                          .build(),
                  fulfillment.getCondition()
                  );
-        int initial_holdBalance      = bankOfIngland.getHoldAccount().getBalance();
-        int initial_connectorBalance = bankOfIngland.getAccountByILPAddress(connector1Addr).getBalance();
+        int initial_srcBalance    = bankOfIngland.getAccountByILPAddress(srcAccountAddr).getBalance();
+        int initial_holdBalance   = bankOfIngland.getHoldAccount().getBalance();
+        int initial_dstBalance    = bankOfIngland.getAccountByILPAddress(dstAccountAddr).getBalance();
 
-        plugin1.sendTransfer(ilpTransfer);
-        int        holdBalance_prepared = bankOfIngland.getHoldAccount().getBalance();
-        int   connectorBalance_prepared = bankOfIngland.getAccountByILPAddress(connector1Addr).getBalance();
+        // prepareTransfer will prepare it moving money:
+        // srcAccountAddr -> (ammount) -> HOLD account
+        plugin1.prepareTransfer(ilpTransfer);
+System.out.println( "localTransfers:\n" + bankOfIngland.debugDumpLastLocalTransfers().toString() );
+        int  srcBalance_prepared = bankOfIngland.getAccountByILPAddress(srcAccountAddr).getBalance();
+        int holdBalance_prepared = bankOfIngland.getHoldAccount().getBalance();
+        int  dstBalance_prepared = bankOfIngland.getAccountByILPAddress(dstAccountAddr).getBalance();
+        assertEquals(initial_srcBalance  - amount, srcBalance_prepared);
         assertEquals(initial_holdBalance + amount, holdBalance_prepared);
-        assertEquals(initial_connectorBalance, connectorBalance_prepared);
+        assertEquals(initial_dstBalance          , dstBalance_prepared );
 
+        // fulfillCondition will execute the transfer moving money:
+        // HOLD account -> (ammount) -> connector account
         plugin1.fulfillCondition(UUID0, fulfillment);
-        int        holdBalance_fulfilled = bankOfIngland.getHoldAccount().getBalance();
-        int   connectorBalance_fulfilled = bankOfIngland.getAccountByILPAddress(connector1Addr).getBalance();
+        int  srcBalance_fulfilled = bankOfIngland.getAccountByILPAddress(srcAccountAddr).getBalance();
+        int holdBalance_fulfilled = bankOfIngland.getHoldAccount().getBalance();
+        int  dstBalance_fulfilled = bankOfIngland.getAccountByILPAddress(dstAccountAddr).getBalance();
+        assertEquals(srcBalance_prepared, srcBalance_fulfilled);
         assertEquals(initial_holdBalance, holdBalance_fulfilled);
-        assertEquals(initial_connectorBalance + amount, connectorBalance_fulfilled);
+        assertEquals(initial_dstBalance + amount, dstBalance_fulfilled);
     }
 
     @Test

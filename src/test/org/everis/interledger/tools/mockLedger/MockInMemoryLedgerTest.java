@@ -67,7 +67,7 @@ class MockInMemoryLedgerTest {
     void executeLocalTransfer() {
         int creditor1_initialBalance = ledger.getAccountByILPAddress(creditor1_ilp_address).getBalance();
         int tx_amount = 100;
-        LedgerTransfer tx = new LedgerTransfer( creditor1, debitor1, tx_amount );
+        LocalTransfer tx = new LocalTransfer( creditor1, debitor1, tx_amount );
         ledger.internalLedger.executeTransfer(tx);
         int creditor1_finalBalance = ledger.getAccountByILPAddress(creditor1_ilp_address).getBalance();
         assertEquals( creditor1_finalBalance, creditor1_initialBalance - tx_amount);
@@ -108,7 +108,7 @@ class MockInMemoryLedgerTest {
 ///////             150, mockCondition, null);
 ///////
 ///////         sourcePlugin.connect(ledgerEveris);
-///////         sourcePlugin.sendTransfer(testOne);
+///////         sourcePlugin.prepareTransfer(testOne);
 
 /////////        System.out.println("null here" + "\n" + ledgerEveris);
 

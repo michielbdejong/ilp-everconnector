@@ -97,7 +97,7 @@ public class Plugin {
      * call the prepare transfer method on the ledger.
      * @param newTransfer
      */
-    public void sendTransfer(ILPTransfer newTransfer) {
+    public void prepareTransfer(ILPTransfer newTransfer) {
         this.ledger.prepareTransaction(newTransfer);
     }
 
