@@ -63,7 +63,6 @@ public class Plugin {
      * @param port
      * @param connector_account_on_ledger
      * @param connector_password_on_ledger
-     * @return
      */
     /**
      * connect the plugin with the ledger in parameter.
@@ -78,7 +77,7 @@ public class Plugin {
      */
     public void disconnect() {
         this.ledger.disconnect(this.ledgerConnection.connectorAddress);
-        this.ledgerInfo = null; // <-- Ummm
+        this.ledgerInfo = null; // <-- TODO : create a default/empty LedgerInfo object.
     }
 
     /**
@@ -94,6 +93,9 @@ public class Plugin {
      * @param newTransfer
      */
     public void prepareTransfer(ILPTransfer newTransfer) {
+        if (!this.isConnected()) {
+            throw new RuntimeException("Plugin not connected");
+        }
         this.ledger.prepareTransaction(newTransfer);
     }
 
@@ -103,6 +105,9 @@ public class Plugin {
      * @param fulfillment
      */
     public void fulfillCondition(String transferId, Fulfillment fulfillment) {
+        if (!this.isConnected()) {
+            throw new RuntimeException("Plugin not connected");
+        }
         this.ledger.fulfillCondition(transferId, fulfillment);
     }
 
@@ -111,6 +116,9 @@ public class Plugin {
      * @param transferId
      */
     public void rejectTransfer(int transferId) {
+        if (!this.isConnected()) {
+            throw new RuntimeException("Plugin not connected");
+        }
         this.ledger.rejectTransfer(transferId);
     }
     
