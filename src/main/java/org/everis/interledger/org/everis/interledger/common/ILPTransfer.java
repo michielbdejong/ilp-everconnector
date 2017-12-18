@@ -1,4 +1,4 @@
-package org.everis.interledger.plugins;
+package org.everis.interledger.org.everis.interledger.common;
 
 import java.security.Timestamp;
 
@@ -7,7 +7,7 @@ import org.interledger.cryptoconditions.Condition;
 import org.interledger.cryptoconditions.Fulfillment;
 import org.interledger.ilp.InterledgerPayment;
 
-public class Transfer {
+public class ILPTransfer {
 
     private class ErrorMessages {
         private ErrorMessages() {
@@ -24,32 +24,46 @@ public class Transfer {
     }
 
     private static int generator = 0;
-    private int id;
+    private final String ILP_TX_UUID;
 
-    private InterledgerAddress destinationAccount;
-    private InterledgerAddress sourceAccount;
-    private Integer amount;
+    private final InterledgerAddress destinationAccount;
+    private final InterledgerAddress sourceAccount;
+    private final Integer amount;
 
     private Timestamp expiration;
+    // TODO:(1) make final?
     private TransferStatus status;
 
-    private InterledgerPayment payment;
+    private final InterledgerPayment payment;
 
-    private Condition condition;
-    private Fulfillment fulfillment;
+    private final Condition condition;
 
-    /**
-     *  Testing constructor. For now, we are no using InterledgerPayments, so to make it easy,
-     *  we're created this.
+    private final Fulfillment fulfillment;
+
+        /**
      * @param sourceAccount
      * @param destinationAccount
      * @param amountValue
+     * @param payment ILP packet associated to the transfer. Right now we are not using it. Next step.
      */
-    public Transfer(
+    private ILPTransfer(
+            String ILP_TX_UUID,
             InterledgerAddress sourceAccount,
             InterledgerAddress destinationAccount,
-            Integer amountValue) {
-        this(sourceAccount, destinationAccount, amountValue, null);
+            Integer amountValue,
+            InterledgerPayment payment,
+            Condition condition,
+            Fulfillment fulfillment) {
+        this.ILP_TX_UUID = ILP_TX_UUID;
+        this.destinationAccount = destinationAccount;
+        this.sourceAccount = sourceAccount;
+
+        this.status = null;
+        this.amount = amountValue;
+        this.payment = payment;
+
+        this.condition = condition;
+        this.fulfillment = fulfillment;
     }
 
     /**
@@ -58,25 +72,47 @@ public class Transfer {
      * @param amountValue
      * @param payment ILP packet associated to the transfer. Right now we are not using it. Next step.
      */
-    public Transfer(
+    public ILPTransfer(
+            String UUID,
             InterledgerAddress sourceAccount,
             InterledgerAddress destinationAccount,
             Integer amountValue,
-            InterledgerPayment payment) {
-
-        this.id = generator;
-        generator = generator + 1;
-
-        this.destinationAccount = destinationAccount;
-        this.sourceAccount = sourceAccount;
-
-        this.status = null;
-        this.amount = amountValue;
-        this.payment = payment;
+            InterledgerPayment payment,
+            Condition condition) {
+        this(UUID, sourceAccount,
+             destinationAccount,
+             amountValue,
+             payment,
+             condition,
+             null);
     }
 
-    public Integer getId() {
-        return id;
+    /**
+     *  Recreates from existing transfer and new fulfillment
+     *
+     *  @throws RuntimeException if fulfillment does NOT match condition
+     */
+    public ILPTransfer(ILPTransfer other, Fulfillment newFulfillment) {
+        this(other.ILP_TX_UUID,
+             other.sourceAccount,
+             other.destinationAccount,
+             other.amount,
+             other.payment,
+             other.condition,
+             newFulfillment);
+        if (   other.fulfillment!=null &&
+             ! other.fulfillment.equals(newFulfillment)) {
+            throw new RuntimeException("Trying to re-asign a different fulfillment to a transfer that was " +
+                    "already been asigned one");
+        }
+        if (!fulfillment.verify(condition, new byte[] {})) {
+            throw new RuntimeException("fulfillment does NOT verify transfer condition");
+        }
+        this.status = other.status;
+    }
+
+    public String getUUID() {
+        return ILP_TX_UUID;
     }
 
     public TransferStatus getStatus() throws RuntimeException {
@@ -94,9 +130,8 @@ public class Transfer {
     public void setPreparedStatus() throws RuntimeException {
         if (this.status != null) {
             throw new RuntimeException(ErrorMessages.FLOW_STATUS);
-        } else {
-            this.status = TransferStatus.PREPARED;
         }
+        this.status = TransferStatus.PREPARED;
     }
 
     /**
@@ -106,9 +141,8 @@ public class Transfer {
     public void setExecutedStatus() throws RuntimeException {
         if (this.status != TransferStatus.PREPARED) {
             throw new RuntimeException(ErrorMessages.FLOW_STATUS);
-        } else {
-            this.status = TransferStatus.EXECUTED;
         }
+        this.status = TransferStatus.EXECUTED;
     }
 
     /**
@@ -135,10 +169,6 @@ public class Transfer {
         return payment;
     }
 
-    public void setPayment(InterledgerPayment paymentValue) {
-        this.payment = paymentValue;
-    }
-
     public Integer getAmount() {
         return amount;
     }
@@ -147,22 +177,17 @@ public class Transfer {
         return condition;
     }
 
-    public void setCondition(Condition conditionValue) {
-        this.condition = conditionValue;
-    }
-
     public Fulfillment getFulfillment() {
+        if (fulfillment == null) {
+            throw new RuntimeException("Fulfillment not initialized");
+        }
         return fulfillment;
-    }
-
-    public void setFulfillment(Fulfillment fulfillmentValue) {
-        this.fulfillment = fulfillmentValue;
     }
 
     @Override
     public String toString() {
         return "Transfer {" +
-            "id=" + id +
+            "UUID=" + ILP_TX_UUID +
             ", destinationAccount=" + destinationAccount +
             ", sourceAccount=" + sourceAccount +
             ", amount=" + amount +

@@ -1,39 +1,83 @@
 package org.everis.interledger.plugins;
 
+import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
+import org.everis.interledger.org.everis.interledger.common.LedgerInfo;
+import org.everis.interledger.tools.mockLedger.LocalLedgerILPAdaptor;
+import org.interledger.InterledgerAddress;
 import org.interledger.cryptoconditions.Fulfillment;
 
 /**
  * Entity of Plugin to connect any sender, receiver or connector with a ledger.
  */
 public class Plugin {
-    private PluginConnection pluginConnection;
-    private Ledger ledger;
-    private LedgerInfo ledgerInfo;
+
+    final private LedgerConnection ledgerConnection;
+    private LocalLedgerILPAdaptor ledger;
+
+    private LedgerInfo ledgerInfo = null; // cache info. It's retrieved during connection.
+
 
     /**
-     * Connector with a PluginConnection object.
-     * @param pluginConnection
+     * Keeps credentials and any other usefull info to help connect to the ledger
+     * This info will vary for each different ledger
+     * This class is used as input to the connect phase.
+     * It represents data needed to find the ledger on the network, authenticate to the ledger,...
+     *
+     * Once connected info about the remote ledger can be fetched throught LedgerInfo (connected_)ledgder.getInfo();
      */
-    public Plugin(PluginConnection pluginConnection) {
-        this.pluginConnection = pluginConnection;
+    static class LedgerConnection {
+        final String host; // not used, just left as example data
+        final String port; // not used, just left as example data
+        final String accound_id;
+        final String pass;
+        final InterledgerAddress connectorAddress;
+
+        public LedgerConnection(String account_id, String pass, InterledgerAddress connectorAddress){
+           this.accound_id = account_id;
+           this.pass = pass;
+           this.host = "mockHost";
+           this.port = "mockPort";
+           this.connectorAddress = connectorAddress;
+        }
     }
 
     /**
-     * connect the plugin with the ledger in parameter.
-     * @param ledger
+     * Connector with a PluginConnection object.
+     * @param ledger: Represent an in-memory-ledger that must exists before the ledger can connect
+     *                It can be created at startup (static void main ...) by injection from Spring, ...
+     *                But the important point is that a ledger is instantiated first, then the plugin
+     *                will try to connect to it.
+     * @param ledgerConnection
      */
-    public void connect(Ledger ledger) {
-        this.ledgerInfo = ledger.connect(this.pluginConnection);
+    public Plugin(LocalLedgerILPAdaptor ledger, LedgerConnection ledgerConnection) {
         this.ledger = ledger;
+        this.ledgerConnection = ledgerConnection;
+    }
+
+
+    /**
+     * This static class simulates a network connection to the ledger
+     *
+     * In this case we just instantiate a new in-memory-ledger
+     * @param host
+     * @param port
+     * @param connector_account_on_ledger
+     * @param connector_password_on_ledger
+     */
+    /**
+     * connect the plugin with the ledger in parameter.
+     */
+    public void connect() {
+        this.ledger.onILPConnectRequest(ledgerConnection.connectorAddress, ledgerConnection.accound_id, ledgerConnection.pass);
+        this.ledgerInfo = ledger.getInfo();
     }
 
     /**
      * disconnect the plugin from any ledger connected.
      */
     public void disconnect() {
-        this.ledger.disconnect(this.pluginConnection.getPluginAccountAddress());
-        this.ledger = null;
-        this.ledgerInfo = null;
+        this.ledger.disconnect(this.ledgerConnection.connectorAddress);
+        this.ledgerInfo = null; // <-- TODO : create a default/empty LedgerInfo object.
     }
 
     /**
@@ -41,19 +85,18 @@ public class Plugin {
      * @return boolean
      */
     public boolean isConnected() {
-        return this.ledger != null && this.ledger.isPluginConnected(this.pluginConnection.getPluginAccountAddress());
+        return this.ledgerInfo != null;
     }
 
     /**
      * call the prepare transfer method on the ledger.
      * @param newTransfer
      */
-    public void sendTransfer(Transfer newTransfer) {
-        if (this.isConnected()) {
-            this.ledger.prepareTransaction(newTransfer);
-        } else {
+    public void prepareTransfer(ILPTransfer newTransfer) {
+        if (!this.isConnected()) {
             throw new RuntimeException("Plugin not connected");
         }
+        this.ledger.prepareTransaction(newTransfer);
     }
 
     /**
@@ -61,12 +104,11 @@ public class Plugin {
      * @param transferId
      * @param fulfillment
      */
-    public void fulfillCondition(int transferId, Fulfillment fulfillment) {
-        if (this.isConnected()) {
-            this.ledger.fulfillCondition(transferId, fulfillment);
-        } else {
+    public void fulfillCondition(String transferId, Fulfillment fulfillment) {
+        if (!this.isConnected()) {
             throw new RuntimeException("Plugin not connected");
         }
+        this.ledger.fulfillCondition(transferId, fulfillment);
     }
 
     /**
@@ -74,11 +116,10 @@ public class Plugin {
      * @param transferId
      */
     public void rejectTransfer(int transferId) {
-        if (this.isConnected()) {
-            this.ledger.rejectTransfer(transferId);
-        } else {
+        if (!this.isConnected()) {
             throw new RuntimeException("Plugin not connected");
         }
+        this.ledger.rejectTransfer(transferId);
     }
     
     @Override
@@ -87,7 +128,7 @@ public class Plugin {
         str.append("-PLUGIN-ACCOUNTS---------");
         str.append("\n-------------------------");
         str.append("\n" +  this.ledger == null ? "-NO-LEDGER------------" : this.ledgerInfo);
-        str.append("\nLinked Account " + this.pluginConnection.getPluginAccountAddress());
+        str.append("\nLinked Account " + this.ledgerConnection.connectorAddress);
         str.append("\n-------------------------");
         return str.toString();
     }
