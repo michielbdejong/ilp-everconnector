@@ -63,13 +63,8 @@ public class Plugin {
      * disconnect the plugin from any ledger connected.
      */
     public void disconnect() {
-<<<<<<< HEAD
-        this.ledger.disconnect(this.ledgerConnection.connectorAddress);
-        this.ledgerInfo = null; // <-- TODO : create a default/empty LedgerInfo object.
-=======
         this.ledger.disconnect(this.ledgerConnection.getConnectorAddress());
         this.ledgerInfo = null; // <-- Ummm
->>>>>>> 98dbbee4ca504f138028c3b1d9923fbadc69eafc
     }
 
     /**
