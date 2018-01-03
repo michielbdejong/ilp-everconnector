@@ -54,9 +54,9 @@ public class GenericConnectorTest {
         dstAccountAddr = InterledgerAddress.of(LEDGER_EURO_PREFIX + "user_france");
     }
 
-    /*@Test
+    @Test
     void fulfillTransferPoundsToEuro() {
-        System.out.println("---------------------Transfer Fulfilled---------------------");
+        System.out.println("---------------------Transfer Fulfilled Pounds to Euro---------------------");
         int amount = 100;
         String UUID0 = "UUID0";
         byte[] preimage = "c_comment?".getBytes();
@@ -116,11 +116,11 @@ public class GenericConnectorTest {
         System.out.println("dstConnector: " + dstConnector);
         System.out.println("holdAccBankFrance: " + holdAccBankFrance);
         System.out.println("destBalance: " + destBalance + "\n");
-    }*/
+    }
 
     @Test
     public void fulfillTransferEuroToPounds() {
-        System.out.println("---------------------Transfer Fulfilled---------------------");
+        System.out.println("---------------------Transfer Fulfilled Euro to Pounds---------------------");
         int amount = 100;
         String UUID0 = "UUID0";
         byte[] preimage = "c_comment?".getBytes();
@@ -179,6 +179,70 @@ public class GenericConnectorTest {
         System.out.println("srcConnector: " + srcConnector);
         System.out.println("dstConnector: " + dstConnector);
         System.out.println("holdAccBankEngland: " + holdAccBankEngland);
+        System.out.println("destBalance: " + destBalance + "\n");
+    }
+
+    @Test
+    void rejectTransferPoundsToEuro() {
+        System.out.println("---------------------Transfer Rejected Pounds to Euro---------------------");
+        int amount = 100;
+        String UUID0 = "UUID0";
+        byte[] preimage = "c_comment?".getBytes();
+        Fulfillment fulfillment = new PreimageSha256Fulfillment(preimage);
+        ILPTransfer ilpTransfer = new ILPTransfer(UUID0,
+                srcAccountAddr,
+                dstAccountAddr,
+                amount,
+                InterledgerPayment.builder()
+                        .destinationAccount(dstAccountAddr)
+                        .destinationAmount(new BigInteger(""+amount))
+                        .data(new byte[]{})
+                        .build(),
+                fulfillment.getCondition()
+        );
+
+        //connect the plugins to their associated ledger
+        pluginBankEngland.connect();
+        pluginBankFrance.connect();
+
+        //prepare the transfer
+        pluginBankEngland.prepareTransfer(ilpTransfer);
+        int srcBalancePrepare = bankOfEngland.getAccountByILPAddress(srcAccountAddr).getBalance();
+        int holdAccBankEnglandPrepare = bankOfEngland.getHoldAccount().getBalance();
+        int srcConnectorPrepare = bankOfEngland
+                .getAccountByILPAddress(InterledgerAddress.of(LEDGER_POUND_PREFIX + ID_CONNECTOR_EVERIS))
+                .getBalance();
+        int dstConnectorPrepare = bankOfFrance
+                .getAccountByILPAddress(InterledgerAddress.of(LEDGER_EURO_PREFIX + ID_CONNECTOR_EVERIS))
+                .getBalance();
+        int holdAccBankFrancePrepare = bankOfFrance.getHoldAccount().getBalance();
+        int destBalancePrepare = bankOfFrance.getAccountByILPAddress(dstAccountAddr).getBalance();
+        System.out.println("---------------------Transfer prepare---------------------");
+        System.out.println("srcBalance: " + srcBalancePrepare);
+        System.out.println("holdAccBankEngland: " + holdAccBankEnglandPrepare);
+        System.out.println("srcConnector: " + srcConnectorPrepare);
+        System.out.println("dstConnector: " + dstConnectorPrepare);
+        System.out.println("holdAccBankFrance: " + holdAccBankFrancePrepare);
+        System.out.println("destBalance: " + destBalancePrepare);
+
+        //fulfill the transfer
+        pluginBankFrance.rejectTransfer(ilpTransfer.getUUID());
+        int srcBalance = bankOfEngland.getAccountByILPAddress(srcAccountAddr).getBalance();
+        int holdAccBankEngland = bankOfEngland.getHoldAccount().getBalance();
+        int srcConnector = bankOfEngland
+                .getAccountByILPAddress(InterledgerAddress.of(LEDGER_POUND_PREFIX + ID_CONNECTOR_EVERIS))
+                .getBalance();
+        int dstConnector = bankOfFrance
+                .getAccountByILPAddress(InterledgerAddress.of(LEDGER_EURO_PREFIX + ID_CONNECTOR_EVERIS))
+                .getBalance();
+        int holdAccBankFrance = bankOfFrance.getHoldAccount().getBalance();
+        int destBalance = bankOfFrance.getAccountByILPAddress(dstAccountAddr).getBalance();
+        System.out.println("---------------------Transfer reject---------------------");
+        System.out.println("srcBalance: " + srcBalance);
+        System.out.println("holdAccBankEngland: " + holdAccBankEngland);
+        System.out.println("srcConnector: " + srcConnector);
+        System.out.println("dstConnector: " + dstConnector);
+        System.out.println("holdAccBankFrance: " + holdAccBankFrance);
         System.out.println("destBalance: " + destBalance + "\n");
     }
 }
