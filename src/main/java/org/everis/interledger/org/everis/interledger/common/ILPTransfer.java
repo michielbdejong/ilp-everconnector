@@ -7,6 +7,7 @@ import org.interledger.cryptoconditions.Condition;
 import org.interledger.cryptoconditions.Fulfillment;
 import org.interledger.ilp.InterledgerPayment;
 
+// TODO:(0) Remove this class and use standard ILP Packets.
 public class ILPTransfer {
 
     private class ErrorMessages {

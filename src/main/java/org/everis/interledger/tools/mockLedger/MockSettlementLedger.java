@@ -9,7 +9,7 @@ import java.util.*;
  *  It must NOT contain any reference to ILP structures. In practice this
  *  class simulates a main-frame, a blockchain, ...
  */
-class LocalLedger {
+class MockSettlementLedger {
     public final Map<String /* id */, LocalAccount> ledgerAccounts;
     public final CurrencyUnit ledgerCurrency;
 
@@ -38,13 +38,15 @@ class LocalLedger {
             this.finalDstAmount   = finalDstAmount;
         }
     }
+
     public final List<TXLog> logOfLocalTransfers = new ArrayList<TXLog>();
 
-    LocalLedger(CurrencyUnit ledgerCurrency, int simulatedLoadDelay) {
+    MockSettlementLedger(CurrencyUnit ledgerCurrency, int simulatedLoadDelay) {
         this.ledgerAccounts = new HashMap<String /*id */, LocalAccount>();
         this.ledgerCurrency = ledgerCurrency;
         this.simulatedLoadDelay = simulatedLoadDelay;
     }
+
     /**
      * add an account to the ledger.
      * @param newAccount

@@ -1,0 +1,2 @@
+connector.ilpAddress=g.eur.connector1
+connector.peersConfigFiles=connector1_to_connector2_plugin.prop

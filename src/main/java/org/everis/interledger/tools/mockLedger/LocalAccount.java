@@ -1,7 +1,7 @@
 package org.everis.interledger.tools.mockLedger;
 
 /**
- * entity representing an account with an ILP address, a password and a balance.
+ * entity representing an account with an ILP ilpAddress, a password and a balance.
  *
  * credit and debit are removed to force balance movements just in the LocalLedger.execute(LocalTransfer tx)
  * That forces to always move money in the context of local transactions.
@@ -15,7 +15,7 @@ public class LocalAccount {
 
 
     /**
-     * Constructor for an account with an ILP address, a password and a balance.
+     * Constructor for an account with an ILP ilpAddress, a password and a balance.
      * @param id
      * @param password
      * @param balance

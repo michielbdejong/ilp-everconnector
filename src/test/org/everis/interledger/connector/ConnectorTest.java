@@ -1,21 +1,5 @@
 package org.everis.interledger.connector;
 
-import org.everis.interledger.connector.SimpleConnector;
-import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
-import org.everis.interledger.plugins.LedgerConnection;
-import org.everis.interledger.plugins.Plugin;
-import org.everis.interledger.tools.mockLedger.LocalAccount;
-import org.everis.interledger.tools.mockLedger.LocalLedgerILPAdaptor;
-import org.interledger.InterledgerAddress;
-import org.interledger.cryptoconditions.Fulfillment;
-import org.interledger.cryptoconditions.PreimageSha256Fulfillment;
-import org.interledger.ilp.InterledgerPayment;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import javax.money.Monetary;
-import java.math.BigInteger;
-
 public class ConnectorTest {
     /*final static String ID_CONNECTOR_EVERIS = "connectorEveris";
     final static InterledgerAddress CONNECTOR_ADDRESS = InterledgerAddress.of("test1.connector");

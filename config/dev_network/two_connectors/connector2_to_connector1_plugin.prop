@@ -1,0 +1,12 @@
+plugin.className=PaymentChannelPlugin
+plugin.ledgerPrefix=peer.connector1.
+plugin.currency=EUR
+plugin.account=connector2
+plugin.secsReconnect=3
+plugin.listeningHostOrIP=host2;
+plugin.listeningPort=5010
+plugin.peer_plugin.host=host1
+plugin.peer_plugin.port=5010
+plugin.peer_plugin.secret=secret_for_connector2
+plugin.trustLine.maxIOYAmount=100
+plugin.trustLine.maxYOMAmount=10

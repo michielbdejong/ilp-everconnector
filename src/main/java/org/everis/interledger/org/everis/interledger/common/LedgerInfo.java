@@ -3,17 +3,18 @@ package org.everis.interledger.org.everis.interledger.common;
 import org.interledger.InterledgerAddress;
 
 import javax.money.CurrencyUnit;
+import javax.money.Monetary;
 
 /**
  * Entity reference of the ledger with the aim to be store in Plugin once connected
  */
+// TODO:(quilt) This class must be standard in quilt/ilp-core (or quilt/ilp-ledger-support or similar)
 public class LedgerInfo {
     private final InterledgerAddress ledgerPrefix;
     private final CurrencyUnit ledgerCurency;
 
-
     /**
-     * Constructor with an ILP address prefix and a Currency unit.
+     * Constructor with an ILP ilpAddress prefix and a Currency unit.
      * @param ledgerPrefix
      * @param ledgerCurency
      */
