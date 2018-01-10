@@ -1,25 +1,21 @@
 package org.everis.interledger.plugins;
 
+// REF: https://github.com/interledgerjs/ilp-plugin-btp
 import org.everis.interledger.config.plugin.PaymentChannelConfig;
-import org.everis.interledger.connector.GenericConnector;
-import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.org.everis.interledger.common.LedgerInfo;
 import org.interledger.InterledgerAddress;
-import org.interledger.cryptoconditions.Fulfillment;
 
-import javax.money.Monetary;
+
 import java.math.BigInteger;
 import java.nio.Buffer;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
  * Entity of Plugin to connect any sender, receiver or connector with a remoteLedgerAdaptor.
  */
+// TODO:(0) Rename as BaseBTPPlugin
 public class PaymentChannelPlugin extends BasePlugin {
     final PaymentChannelConfig pluginConfig;
-    private final String ID_HOLD_ACCOUNT = "@ILP_HOLD_ACCOUNT@";
     private PaymentChannelPlugin peerPaymentChannelPlugin = null;
 
     /*

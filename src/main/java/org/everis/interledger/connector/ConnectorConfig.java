@@ -3,7 +3,6 @@ package org.everis.interledger.connector;
 import org.everis.interledger.config.plugin.BasePluginConfig;
 import org.everis.interledger.config.PropertiesConfig;
 import org.everis.interledger.plugins.BasePlugin;
-import org.everis.interledger.plugins.PaymentChannelPlugin;
 import org.interledger.InterledgerAddress;
 
 import java.util.ArrayList;
