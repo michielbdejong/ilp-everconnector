@@ -9,6 +9,7 @@ import org.interledger.InterledgerProtocolException;
 import org.interledger.cryptoconditions.Fulfillment;
 import org.interledger.ilp.packets.FulfillmentPacketType;
 
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.nio.Buffer;
 import java.util.ArrayList;
@@ -126,12 +127,12 @@ public abstract class BasePlugin {
 
 
     public static class DataResponse {
-        final Fulfillment fulfillment;
-        final Optional<Buffer> endToEndData;
+        final String base64fulfillment;
+        final byte[] endToEndData;
 
-        DataResponse(Fulfillment fulfillment, Optional<Buffer> endToEndData) {
-             this.fulfillment = fulfillment;
-             this.endToEndData= endToEndData;
+        DataResponse(String base64fulfillment, byte[] endToEndData) {
+             this.base64fulfillment = base64fulfillment;
+             this.endToEndData = endToEndData;
         }
     }
     // REF: https://github.com/interledger/rfcs/blob/de237e8b9250d83d5e9d9dec58e7aca88c887b57/0000-ilp-over-http.md
@@ -151,7 +152,8 @@ public abstract class BasePlugin {
     public abstract CompletableFuture<DataResponse> sendData(
             String ILPConditionBase64Encoded,
             InterledgerAddress destinantion,
-            Optional<Buffer> endToEndData
+            Instant ilpExpiry /* TODO:(0) Drop?*/,
+            Optional<ByteBuffer> endToEndData
     );
 
     public abstract CompletableFuture<Void>   sendMoney(String amount);

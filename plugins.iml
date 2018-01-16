@@ -36,6 +36,8 @@
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-core:2.9.0" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-databind:2.9.0" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-annotations:2.9.0" level="project" />
+    <orderEntry type="library" name="Maven: io.vertx:vertx-web-common:3.5.0" level="project" />
+    <orderEntry type="library" name="Maven: io.vertx:vertx-web-client:3.5.0" level="project" />
     <orderEntry type="library" name="Maven: io.netty:netty-tcnative-boringssl-static:2.0.6.Final" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.opentest4j:opentest4j:1.0.0" level="project" />
     <orderEntry type="library" name="Maven: org.junit.platform:junit-platform-commons:1.1.0-M1" level="project" />

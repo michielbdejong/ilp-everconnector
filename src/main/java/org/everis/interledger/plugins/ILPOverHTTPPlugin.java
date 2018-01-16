@@ -6,6 +6,8 @@ package org.everis.interledger.plugins;
 import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
 import org.everis.interledger.config.plugin.PaymentChannelConfig;
 import org.everis.interledger.org.everis.interledger.common.LedgerInfo;
 import org.everis.interledger.tools.mockILPNetwork.MockHosts;
@@ -16,18 +18,25 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URL;
 import java.nio.Buffer;
+import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
-
 import io.vertx.core.net.PemKeyCertOptions;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
+import org.interledger.InterledgerPacketType;
 import org.interledger.InterledgerProtocolException;
 import org.interledger.ilp.InterledgerProtocolError;
 
@@ -57,13 +66,13 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                 String tls_key_path,
                 String tls_crt_path,
                 URL peerUrl ) {
-            this.requestHandler = requestHandler;
-            this.verticleID     = verticleID    ;
-            this.listeningHost  = listeningHost ;
-            this.listeningPort  = listeningPort ;
-            this.tls_key_path   = tls_key_path  ;
-            this.tls_crt_path   = tls_crt_path  ;
-            this.peerUrl        = peerUrl       ;
+            this.requestHandler = Objects.requireNonNull(requestHandler);
+            this.verticleID     = Objects.requireNonNull(verticleID    );
+            this.listeningHost  = Objects.requireNonNull(listeningHost );
+            this.listeningPort  = Objects.requireNonNull(listeningPort );
+            this.tls_key_path   = Objects.requireNonNull(tls_key_path  );
+            this.tls_crt_path   = Objects.requireNonNull(tls_crt_path  );
+            this.peerUrl        = Objects.requireNonNull(peerUrl       );
         }
 
         private File _getCWD()  {
@@ -122,26 +131,25 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         public void start() throws Exception {
             HttpServer server = vertx.createHttpServer( _getHTTPServerOptions() );
 
-        server.requestHandler(req -> {
-/////       req.response().putHeader("content-type", "text/html").end("<html><body><h1>Hello from vert.x!</h1></body></html>");
+            server.requestHandler(req -> {
                 MultiMap headers = req.headers();
-                InterledgerAddress destination         = InterledgerAddress.of(headers.get("ilp-destination"));
-                String Base64ExecCondition = headers.get("ilp-condition"  );
-                Instant expiresAt          = Instant.from(ZonedDateTime.parse(headers.get("ilp-expiry")));
-                String amount              = headers.get("ilp-amount");
-                Buffer endToEndData        = null /* TODO:(0) Add body as endToEndData*/;
+                InterledgerAddress destination = InterledgerAddress.of(headers.get("ilp-destination"));
+                String Base64ExecCondition = headers.get("ilp-condition");
+                Instant expiresAt = Instant.from(ZonedDateTime.parse(headers.get("ilp-expiry")));
+                String amount = headers.get("ilp-amount");
+                ByteBuffer endToEndData = null /* TODO:(0) Add body as endToEndData*/;
                 CompletableFuture<IRequestHandler.ILPResponse> ilpResponse =
-                    this.requestHandler.onRequestReceived(
-    	                destination, Base64ExecCondition, expiresAt, amount, endToEndData );
+                        this.requestHandler.onRequestReceived(
+                                destination, Base64ExecCondition, expiresAt, amount, endToEndData);
                 final HttpServerResponse response = req.response();
                 final MultiMap res_headers = response.headers();
                 boolean retry;
                 do {
                     retry = false;
                     try {
-                         // TODO:(0) Blocking call!! exec in thread pool
+                        // TODO:(0) Blocking call!! exec in thread pool
                         IRequestHandler.ILPResponse ilpRespone = ilpResponse.get();
-                        if (ilpRespone.packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR){
+                        if (ilpRespone.packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR) {
                             throw ilpRespone.optILPException.get();
                         }
                         response.setStatusCode(200);
@@ -154,66 +162,44 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                         response.setStatusCode(400);
                         final InterledgerProtocolError ilpError =
                                 (e.getCause() instanceof InterledgerProtocolException)
-                              ? ((InterledgerProtocolException)e.getCause()).getInterledgerProtocolError()
-                              : InterledgerProtocolError.builder()
-                               .errorCode(InterledgerProtocolError.ErrorCode.T00_INTERNAL_ERROR)
-                               .triggeredByAddress(parentConnector.config.ilpAddress)
-                               // .forwardedByAddresses(ImmutableList.of())
-                               .triggeredAt(Instant.now())
-                               // .data()
-                               .build();
-                        res_headers.set("ilp-error-Code"        , ilpError.getErrorCode().getCode());
-                        res_headers.set("ilp-error-Name"        , ilpError.getErrorCode().getName());
+                                        ? ((InterledgerProtocolException) e.getCause()).getInterledgerProtocolError()
+                                        : InterledgerProtocolError.builder()
+                                        .errorCode(InterledgerProtocolError.ErrorCode.T00_INTERNAL_ERROR)
+                                        .triggeredByAddress(parentConnector.config.ilpAddress)
+                                        // .forwardedByAddresses(ImmutableList.of())
+                                        .triggeredAt(Instant.now())
+                                        // .data()
+                                        .build();
+                        res_headers.set("ilp-error-Code", ilpError.getErrorCode().getCode());
+                        res_headers.set("ilp-error-Name", ilpError.getErrorCode().getName());
                         res_headers.set("ilp-error-Triggered-By", ilpError.getTriggeredByAddress().toString());
-                        res_headers.set("ilp-error-Triggered-At", ilpError.getTriggeredAt().toString() );
-                        res_headers.set("ilp-error-Message"     , e.toString());
+                        res_headers.set("ilp-error-Triggered-At", ilpError.getTriggeredAt().toString());
+                        res_headers.set("ilp-error-Message", e.toString());
                     }
-                } while(retry);
+                } while (retry);
                 response.end("");
-
-/////           let statusCode
-/////           let headers
-/////           switch (obj.type) {
+/////           switch (obj.type)
 /////               case IlpPacket.Type.TYPE_ILP_FULFILL:
 /////                   statusCode = 200
 /////                   headers = {
 /////                           'ilp-fulfillment': obj.data.fulfillment.toString('base64'),
-/////         }
-/////                   break
-/////               case IlpPacket.Type.TYPE_ILP_REJECT:
-/////                   statusCode = 400
-/////                   headers = {
-
-/////         }
-/////                   break
-/////               default:
-/////                   throw new Error('unexpected response type ' + obj.type)
-/////           }
-/////           logServerResponse(statusCode, headers, obj.data.data)
+/////                   }
 /////           res.writeHead(statusCode, headers)
 /////           res.end(obj.data.data)
-/////   }).catch(err => {
-/////                   logServerResponse(500, err)
-/////                   res.writeHead(500)
-/////                   res.end(err.message) // only for debugging, you probably want to disable this line in production
-/////           })
-///// })
-/////       })
-/////       return new Promise(resolve => {
-/////               this.server.listen(this.opts.port, () => {
+/////       return new Promise(resolve =>
+/////               this.server.listen(this.opts.port, () =>
 /////                       logPlugin('listening for http on port ' + this.opts.port)
 /////                       this._connected = true
 /////                       this.emit('connect')
 /////                       resolve()
-/////               })
-/////)
 
-        }).listen(listeningPort);
+            }).listen(listeningPort);
+        }
     }
-}
 
     final PaymentChannelConfig pluginConfig;
     boolean USE_MOCK_NETWORK = true;
+    final Vertx vertx = Vertx.vertx();
 
     /*
      * TODO:(1) In a production plugin re-read current balance
@@ -231,47 +217,18 @@ public class ILPOverHTTPPlugin extends BasePlugin {
      */
     public ILPOverHTTPPlugin(
             PaymentChannelConfig pluginConfig) {
-     /*
-      *     InterledgerAddress ledgerPrefix,
-      *     LocalLedgerILPAdaptor ledger,
-      *     LedgerConnectionConfig ledgerConnection) {
-      */
         super(pluginConfig);
         this.pluginConfig = pluginConfig;
         maxIOYAmmount = this.pluginConfig.maxIOYAmmount;
         maxYOMAmmount = this.pluginConfig.maxIOYAmmount;
     }
 
-    /*
-
-    debug(`processing btp packet ${JSON.stringify(btpPacket)}`)
-    try {
-    } catch (err) {
-      debug(`Error processing BTP packet of type ${btpPacket.type}: `, err)
-      const error = jsErrorToBtpError(err)
-      const requestId = btpPacket.requestId
-      const { code, name, triggeredAt, data } = error
-
-      await this._handleOutgoingBtpPacket(null, {
-        type: BtpPacket.TYPE_ERROR,
-        requestId,
-        data: {
-          code,
-          name,
-          triggeredAt,
-          data,
-          protocolData: []
-        }
-      })
-    }
-     */
-
     private CompletableFuture<Void> _launchListeningWebSocketServer(){
         final CompletableFuture<Void> result = new CompletableFuture<Void>();
         new Thread(() -> {
             if (USE_MOCK_NETWORK) {
                     MockHosts.registerPlugin(pluginConfig.listening_host, pluginConfig.listening_port, this);
-                    result.complete(null);
+                    result.complete(null); // TODO:(0) Check if that's OK for CompletableFuture<Void>
                     System.out.println("Connector '"+this.parentConnector.config.ilpAddress +
                         "': plugin '"+this.getClass().getCanonicalName()+"' listening for ws clients from ledger||peer '"+ basePluginConfig.ledgerPrefix+"'\n"
                       + " listening @ "+pluginConfig.listening_host +":" +pluginConfig.listening_port);
@@ -295,33 +252,8 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         // TODO:(0) Retry. It's quite possible that in some setups both peers are restarted at the same time.
         // (only needed for the client roll, server does not need to reconnect, just listen)
         new Thread(() -> {
-            if (USE_MOCK_NETWORK) {
-                BasePlugin peer;
-                while (true  /* Try to reconnect forever and ever */) {
-                    try {
-                        peer = MockHosts.getInstance(this.pluginConfig.remote_host, this.pluginConfig.remote_port);
-                        if (!(peer instanceof ILPOverHTTPPlugin)) {
-                            throw new RuntimeException("found peer but was not of the expected class type");
-                        }
-                        this.peerPaymentChannelPlugin = (ILPOverHTTPPlugin) peer;
-                        result.complete(null);
-                        System.out.println("Connector '" + this.parentConnector.config.ilpAddress + "': plugin '" + this.getClass().getCanonicalName() + "' connected to ledger||peer '" + basePluginConfig.ledgerPrefix + "'");
-                        break;
-                    }catch (Exception e){
-                        System.out.println("Retrying conection to "+this.pluginConfig.remote_host +":"+ this.pluginConfig.remote_port);
-                        try {
-                            Thread.sleep(1000);
-                        }catch (InterruptedException e1) {
-                            e1.printStackTrace();
-                        }
-                    }
-                }
-            } else {
-                // Connect to running websocket client
-                result.completeExceptionally(
-                        new RuntimeException("Not implemented"));
-                // TODO:(0) IMPLEMENT
-            }
+            // TODO:(1) Do a "get head" or HTTP 2.0 connection
+            result.complete(null); // TODO:(0) Check if that's OK for CompletableFuture<Void>
             this.status = Status.CONNECTED;
         }).start();
         return result;
@@ -370,59 +302,73 @@ public class ILPOverHTTPPlugin extends BasePlugin {
             String ILPConditionBase64Encoded,
             InterledgerAddress destinantion,
             Instant ilpExpiry /* TODO:(0) Drop?*/,
-            Optional<Buffer> endToEndData
+            Optional<ByteBuffer> endToEndData
     ){
         if (!isConnected()) {
             // TODO:(0) Use correct ILP Exception
             throw new RuntimeException("plugin not connected.");
         }
-        // TODO:(0) Implement
-        /*
-         * sendData (packet) {
-         *  const obj = IlpPacket.deserializeIlpPrepare(packet)
-         *  const headers = {
-         *    'ilp-destination':  obj.destination,
-         *    'ilp-condition':    obj.executionCondition.toString('base64'),
-         *    'ilp-expiry':       obj.expiresAt.toISOString(),
-         *    'ilp-amount':       obj.amount,
-         *  }
-         *  return fetch(this.opts.peerUrl, {
-         *    method: 'POST',
-         *    headers,
-         *    body: obj.data
-         *  }).then(res => {
-         *    return res.buffer().then(body => {
-         *      logClientResponse(res.status, res.headers.raw(), body)
-         *      if (res.status === 200) {
-         *        return IlpPacket.serializeIlpFulfill({
-         *          fulfillment: Buffer.from(res.headers.get('ilp-fulfillment'), 'base64'),
-         *          data: body
-         *        })
-         *      } else {
-         *        return IlpPacket.serializeIlpReject({
-         *          code:          res.headers.get('ilp-error-code'),
-         *          name:          res.headers.get('ilp-error-name'),
-         *          triggeredBy:   res.headers.get('ilp-error-triggered-by'),
-         *          triggeredAt:   new Date(res.headers.get('ilp-error-triggered-at')),
-         *          message:       res.headers.get('ilp-error-message'),
-         *          data: body
-         *        })
-         *      }
-         *    })
-         *  }).catch(err => {
-         *    return IlpPacket.serializeIlpReject({
-         *      code:          'P00',
-         *      name:          'plugin bug',
-         *      triggeredBy:   'ilp-plugin-http',
-         *      triggeredAt:   new Date(),
-         *      message:       err.message,
-         *      data: Buffer.from([])
-         *    })
-         *  })
-         *}
-         */
         CompletableFuture<DataResponse> result = new CompletableFuture<DataResponse>();
-        throw new RuntimeException("TODO:(0) Not implemented"); // TODO:(0)
+        // TODO:(0) Implement
+        // REF: http://vertx.io/docs/vertx-web-client/java/
+
+        // CREATING A WEB CLIENT
+        WebClientOptions options = new WebClientOptions()
+                .setUserAgent("My-App/1.2.3")
+                .setFollowRedirects(false);
+        options.setKeepAlive(false);
+        WebClient client = WebClient.create(vertx, options);
+
+        // POST TO THE SERVER
+
+        io.vertx.core.buffer.Buffer buffer =  io.vertx.core.buffer.Buffer.buffer();
+        if (endToEndData.isPresent()) buffer.setBytes(0,endToEndData.get());
+        HttpRequest<io.vertx.core.buffer.Buffer> request1 = client
+            .post(443, "TODO:(0)", "TODO:(0) /some-uri");
+        request1
+            .ssl(true)
+            .timeout(5000)
+            .putHeader("TODO:(0)", "TODO:(0)")
+            .sendBuffer(buffer, /*handle response */ ar -> {
+            // WARNING: responses are fully buffered,
+            //          use BodyCodec.pipe to pipe the response
+            //          to a write stream
+            // NOTE: By default no decoding is applied
+            //       Custom response body decoding can be achieved using BodyCodec
+            //       Ex. To decode as JSON:
+            //         HttpResponse<JsonObject> response = ar.result();
+            //         JsonObject body = response.body();
+            if (ar.succeeded()) {
+                final HttpResponse<io.vertx.core.buffer.Buffer> response = ar.result();
+                if (response.statusCode() == 200) {
+                    final DataResponse delayedResult = new DataResponse(
+                        response.getHeader("ilp-fulfillment"),
+                        response.bodyAsString().getBytes());
+                    result.complete(delayedResult);
+                } else {
+                    //                  return IlpPacket.serializeIlpReject({
+                    final String sCode = response.getHeader("ilp-error-code");
+                    final String sName = response.getHeader("ilp-error-name");
+                    final String sTriggeredBy = response.getHeader("ilp-error-triggered-by");
+                    final List<InterledgerAddress> forwaredByList =
+                            Arrays.stream(response.getHeader("ilp-error-forwarded-by").split(","))
+                                    .map(s -> InterledgerAddress.of(s))
+                                    .collect(Collectors.toList());
+
+                    Instant triggeredAt = Instant.from(ZonedDateTime.parse(response.getHeader("ilp-error-triggered-at")));
+                    String message = response.getHeader("ilp-error-message");
+
+                   final InterledgerProtocolError ilpError = InterledgerProtocolError.builder()
+                       .errorCode(InterledgerProtocolError.ErrorCode.of(sCode, sName))
+                       .triggeredByAddress(InterledgerAddress.of(sTriggeredBy))
+                       .forwardedByAddresses(forwaredByList)
+                       .triggeredAt(Instant.now())
+                       // .data()
+                       .build();
+                   result.completeExceptionally(new InterledgerProtocolException(ilpError));
+                }
+            }
+          });
         return result;
     }
 
