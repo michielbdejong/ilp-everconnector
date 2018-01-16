@@ -37,7 +37,7 @@ public class ConnectorConfig {
              plugins.add(plugin);
              initialRoutingTable.addRoute(new Route(pluginConfig.ledgerPrefix, plugin));
          }catch(Exception e){
-             String sError = "While reading plugin config file '"+peerConfigFile+"' next exception was raised:\n"
+             String sError = "While reading plugin basePluginConfig file '"+peerConfigFile+"' next exception was raised:\n"
                    + "Could not configure connector due to:"+e.toString();
              throw new RuntimeException(sError);
          }

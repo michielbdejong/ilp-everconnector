@@ -13,23 +13,33 @@ import java.util.Map;
 public class MockHosts {
     static Map<String /*host:port*/, BasePlugin> host2Plugin = new HashMap<String, BasePlugin>();
 
-    private static void registerPlugin(final String host, final String port, final BasePlugin plugin) {
-        final String host_port = host+":"+port;
-        if (host2Plugin.containsKey(host_port)) {
-            throw new RuntimeException(host_port +"already registered");
-        }
+    private static String hostPort2Key(String host, String port) {
+        return host+":"+port;
+
     }
 
-    public static void registerConnectorPlugins(List<BasePlugin> plugin_list) {
-        for (BasePlugin plugin : plugin_list) {
-            registerPlugin(
-                plugin.config.listeningHostOrIP,
-                plugin.config.listeningPort,
-                plugin);
+    public static void registerPlugin(final String host, final String port, final BasePlugin plugin) {
+        final String key = hostPort2Key(host,port);
+        if (host2Plugin.containsKey(key)) {
+            throw new RuntimeException(key +"already registered");
         }
+        host2Plugin.put(key, plugin);
     }
 
-    public static void getInstance(final String host, final String port, final BasePlugin plugin) {
+ // public static void registerConnectorPlugins(List<BasePlugin> plugin_list) {
+ //     for (BasePlugin plugin : plugin_list) {
+ //         registerPlugin(
+ //             plugin.basePluginConfig.listeningHostOrIP,
+ //             plugin.basePluginConfig.listeningPort,
+ //             plugin);
+ //     }
+ // }
 
+    public static BasePlugin getInstance(final String host, final String port) {
+        final String key = hostPort2Key(host,port);
+        if (!host2Plugin.containsKey(key)) {
+            throw new RuntimeException("No plugin instance listenint at "+key);
+        }
+        return host2Plugin.get(key);
     }
 }

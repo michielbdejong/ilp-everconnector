@@ -2,24 +2,26 @@ package org.everis.interledger.connector;
 
 import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.InterledgerAddress;
-import java.util.List;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+// TODO:(0) Rename generic to Simple? Generic has many interpretations (base class, ...)
 /**
  * generic connector for processing transfer between x ledgers connected to the connector.
  */
 public class GenericConnector {
-    private final InterledgerAddress ilpAddress;
-    private final ConnectorConfig config;
+    public final ConnectorConfig config;
     private final List<BasePlugin> plugin_list;
     private RouteTable routeTable;
 
     private GenericConnector(ConnectorConfig config) {
         plugin_list = config.plugins;
         /* For now (2018-01-08) the inital routing table
-         * from config is the final one */
+         * from basePluginConfig is the final one */
         routeTable = config.initialRoutingTable;
         this.config = config;
-        this.ilpAddress = config.ilpAddress;
     }
 
     public static GenericConnector build(ConnectorConfig config) {
@@ -28,6 +30,16 @@ public class GenericConnector {
             plugin.setParentConnector(result);
         }
         return result;
+    }
+
+    public CompletableFuture<Void> run(){
+        CompletableFuture<Void>[] connect_list = new CompletableFuture[plugin_list.size()];
+        int idx=0;
+        for (BasePlugin plugin : plugin_list) {
+            connect_list[idx] = plugin.connect();
+            idx++;
+        }
+        return CompletableFuture.allOf(connect_list);
     }
 
 /// /**

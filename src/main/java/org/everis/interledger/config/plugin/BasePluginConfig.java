@@ -15,9 +15,7 @@ public abstract class BasePluginConfig {
     public final Class configClass;
     public final String /*connector account on remote peer/ledger*/ account;
     public final CurrencyUnit currency;
-    public final InterledgerAddress ledgerPrefix;
-    public final String listeningHostOrIP;
-    public final String listeningPort;
+    public final InterledgerAddress ledgerPrefix; // TODO:(0) when we receive getInfo() compare and raise exception if do not match
 
 
     public final int    secsReconnect;
@@ -29,8 +27,6 @@ public abstract class BasePluginConfig {
         currency    = Monetary.getCurrency(propConfig.getCleanString("plugin.currency"));
         secsReconnect = propConfig.getInteger("plugin.secsReconnect");
         ledgerPrefix  = InterledgerAddress.of(propConfig.getString("plugin.ledgerPrefix") );
-        listeningHostOrIP = propConfig.getString("plugin.listeningHostOrIP");
-        listeningPort  = propConfig.getString("plugin.listeningPort");
     }
 
     private static final String[] ALLOWED_PLUGIN_LIST = {

@@ -32,7 +32,7 @@ public class PropertiesConfig {
             } catch (Exception e) {
 
         throw new RuntimeException(
-                "Can not set-up config for file " + CONFIG_FILE
+                "Can not set-up basePluginConfig for file " + CONFIG_FILE
                 + "due to " + e +"\n"
                 + "Working dir: " +Paths.get(".").toAbsolutePath().
                         normalize().toString() );

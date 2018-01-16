@@ -8,7 +8,7 @@ import javax.money.Monetary;
 
 public class MockSettlementLedgerConfig extends BasePluginConfig {
         /**
-         * Next config params are arbitraty, just to have something in place for testing
+         * Next basePluginConfig params are arbitraty, just to have something in place for testing
          */
         public final String host;
         public final String port;

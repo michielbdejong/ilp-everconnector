@@ -9,7 +9,7 @@ public class NetworkWithTwoConnectors {
      *  Settlement ledger 1 <-> Connector 1 <- Payment Channel -> Connector 2 <-> Settlement Ledger 2
      *
      */
-    private static final String pathToConfig = "ILP-Plugin/config/dev_network/two_connectors";
+    private static final String pathToConfig = "ILP-Plugin/basePluginConfig/dev_network/two_connectors";
 
     public static void main(String[] args) {
         ConnectorConfig config1 = new ConnectorConfig(pathToConfig+"/connector1.prop");
@@ -17,7 +17,7 @@ public class NetworkWithTwoConnectors {
         GenericConnector connector1 = GenericConnector.build(config1);
         GenericConnector connector2 = GenericConnector.build(config2);
 
-        MockHosts.registerConnectorPlugins(connector1.getRegisteredPlugins());
-        MockHosts.registerConnectorPlugins(connector2.getRegisteredPlugins());
+        connector2.run();
+        connector1.run();
     }
 }

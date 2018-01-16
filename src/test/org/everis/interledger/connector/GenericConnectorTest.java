@@ -1,29 +1,15 @@
 package org.everis.interledger.connector;
 
-import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
-import org.everis.interledger.plugins.PaymentChannelPlugin;
-import org.everis.interledger.tools.mockLedger.LocalAccount;
-import org.everis.interledger.tools.mockLedger.LocalLedgerILPAdaptor;
-import org.interledger.InterledgerAddress;
-import org.interledger.cryptoconditions.Fulfillment;
-import org.interledger.cryptoconditions.PreimageSha256Fulfillment;
-import org.interledger.ilp.InterledgerPayment;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import javax.money.Monetary;
-import java.math.BigInteger;
-
 public class GenericConnectorTest {
-    final static String ID_CONNECTOR_EVERIS = "connectorEveris";
-    final static InterledgerAddress CONNECTOR_ADDRESS = InterledgerAddress.of("test1.connector");
-    final static String LEDGER_POUND_PREFIX = "test1.pound.";
-    final static String LEDGER_EURO_PREFIX = "test1.euro.";
+////final static String ID_CONNECTOR_EVERIS = "connectorEveris";
+////final static InterledgerAddress CONNECTOR_ADDRESS = InterledgerAddress.of("test1.connector");
+////final static String LEDGER_POUND_PREFIX = "test1.pound.";
+////final static String LEDGER_EURO_PREFIX = "test1.euro.";
 
-    GenericConnector connector;
-    LocalLedgerILPAdaptor bankOfEngland, bankOfFrance;
-    PaymentChannelPlugin pluginBankEngland, pluginBankFrance;
-    InterledgerAddress srcAccountAddr, dstAccountAddr;
+////GenericConnector connector;
+////LocalLedgerILPAdaptor bankOfEngland, bankOfFrance;
+////PaymentChannelPlugin pluginBankEngland, pluginBankFrance;
+////InterledgerAddress srcAccountAddr, dstAccountAddr;
 
 
 ////@BeforeEach
