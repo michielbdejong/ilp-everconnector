@@ -6,14 +6,10 @@ import org.everis.interledger.org.everis.interledger.common.LedgerInfo;
 import org.interledger.InterledgerAddress;
 import org.interledger.InterledgerPacketType;
 import org.interledger.InterledgerProtocolException;
-import org.interledger.cryptoconditions.Fulfillment;
-import org.interledger.ilp.packets.FulfillmentPacketType;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.nio.Buffer;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -29,9 +25,9 @@ public abstract class BasePlugin {
      *
      * REF:  https://github.com/interledger/rfcs/issues/359
      *
-	 * Sender --sendData-> Connector 1 --sendData-> Connector 2 --sendData-> Receiver
-     * |                        |                        |
-     * `----sendMoney->         `----sendMoney->         `----sendMoney->
+	 *  Sender --sendData-> Connector 1 --sendData-> Connector 2 --sendData-> Receiver
+     *                           |                        |                      |
+     *             <--sendMoney--/          <--sendMoney--/        <--sendMoney--/
      */
     BasePlugin(BasePluginConfig config){
         this.basePluginConfig = config;
@@ -111,9 +107,6 @@ public abstract class BasePlugin {
      * @return boolean
      */
     public abstract boolean isConnected() ;
-
-	public abstract LedgerInfo getInfo();
-	public abstract String getAccount();
 
 	public void registerRequestHandler(IRequestHandler requestHandler ) {
 	    if (this.requestHandler != null) {

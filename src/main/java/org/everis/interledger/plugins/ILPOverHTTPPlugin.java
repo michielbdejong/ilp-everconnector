@@ -17,7 +17,6 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URL;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -272,22 +271,6 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         return this.status == Status.CONNECTED;
     }
 
-    @Override
-    public LedgerInfo getInfo(){
-        if (!isConnected()) {
-            // TODO:(0) Use correct ILP Exception
-            throw new RuntimeException("plugin not connected");
-        }
-        // TODO:(0) Implement
-        // TODO:(0) Check currency from ledger info, not from initial pluginConfig
-        LedgerInfo result = new LedgerInfo(InterledgerAddress.of("peer.TODO:(0)"), pluginConfig.currency);
-        return result;
-    }
-
-    @Override
-	public String getAccount() {
-        return this.pluginConfig.account;
-    }
 
     /**
      * first step of the ILP flow to prepare a transfer by transferring the funds on the hold account and put

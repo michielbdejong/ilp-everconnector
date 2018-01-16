@@ -8,7 +8,7 @@ import javax.money.Monetary;
 /**
  * Entity reference of the ledger with the aim to be store in Plugin once connected
  */
-// TODO:(quilt) This class must be standard in quilt/ilp-core (or quilt/ilp-ledger-support or similar)
+// TODO:(quilt) Doesn't apply anymore in ILPv3+
 public class LedgerInfo {
     private final InterledgerAddress ledgerPrefix;
     private final CurrencyUnit ledgerCurency;
