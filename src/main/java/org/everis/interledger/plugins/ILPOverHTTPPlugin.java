@@ -1,7 +1,7 @@
 package org.everis.interledger.plugins;
 
-// REF 1: ILP-over-HTTP JS Implementation: https://github.com/michielbdejong/ilp-plugin-http/blob/master/index.js
-// REF 2: VertX HTTPS server: https://github.com/vert-x3/vertx-examples/blob/master/core-examples/src/main/java/io/vertx/example/core/http/https/Server.java
+// REF 1: https://github.com/interledger/rfcs/pull/349
+// REF 2: ILP-over-HTTP JS Implementation: https://github.com/michielbdejong/ilp-plugin-http/blob/master/index.js
 
 import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue;
 import io.vertx.core.*;
@@ -9,7 +9,6 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import org.everis.interledger.config.plugin.PaymentChannelConfig;
-import org.everis.interledger.org.everis.interledger.common.LedgerInfo;
 import org.everis.interledger.tools.mockILPNetwork.MockHosts;
 import org.interledger.InterledgerAddress;
 
@@ -49,14 +48,16 @@ import org.interledger.ilp.InterledgerProtocolError;
 public class ILPOverHTTPPlugin extends BasePlugin {
 
     public class HTTPSServer extends AbstractVerticle {
+        final IRequestHandler requestHandler;
         final String verticleID;
         final String listeningHost;
         final int listeningPort;
         final String tls_key_path;
         final String tls_crt_path;
-        final IRequestHandler requestHandler;
-        final URL peerUrl;
+        final String remote_host;
+        final int    remote_port;
 
+        // REF 3: VertX HTTPS server: https://github.com/vert-x3/vertx-examples/blob/master/core-examples/src/main/java/io/vertx/example/core/http/https/Server.java
         public HTTPSServer(
                 IRequestHandler requestHandler,
                 String verticleID,
@@ -64,14 +65,17 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                 int listeningPort,
                 String tls_key_path,
                 String tls_crt_path,
-                URL peerUrl ) {
+                String remote_host,
+                int    remote_port
+        ) {
             this.requestHandler = Objects.requireNonNull(requestHandler);
             this.verticleID     = Objects.requireNonNull(verticleID    );
             this.listeningHost  = Objects.requireNonNull(listeningHost );
             this.listeningPort  = Objects.requireNonNull(listeningPort );
             this.tls_key_path   = Objects.requireNonNull(tls_key_path  );
             this.tls_crt_path   = Objects.requireNonNull(tls_crt_path  );
-            this.peerUrl        = Objects.requireNonNull(peerUrl       );
+            this.remote_host    = Objects.requireNonNull(remote_host   );
+            this.remote_port    = remote_port;
         }
 
         private File _getCWD()  {
@@ -126,7 +130,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
             runner.accept(vertx);
         };
 
-       @Override
+        @Override
         public void start() throws Exception {
             HttpServer server = vertx.createHttpServer( _getHTTPServerOptions() );
 
@@ -197,8 +201,9 @@ public class ILPOverHTTPPlugin extends BasePlugin {
     }
 
     final PaymentChannelConfig pluginConfig;
-    boolean USE_MOCK_NETWORK = true;
     final Vertx vertx = Vertx.vertx();
+    HTTPSServer ilpHTTPSServer;
+    final IRequestHandler requestHandler;
 
     /*
      * TODO:(1) In a production plugin re-read current balance
@@ -215,31 +220,12 @@ public class ILPOverHTTPPlugin extends BasePlugin {
      * @param pluginConfig   : Config for initial setup
      */
     public ILPOverHTTPPlugin(
-            PaymentChannelConfig pluginConfig) {
+            PaymentChannelConfig pluginConfig, IRequestHandler requestHandler) {
         super(pluginConfig);
         this.pluginConfig = pluginConfig;
         maxIOYAmmount = this.pluginConfig.maxIOYAmmount;
         maxYOMAmmount = this.pluginConfig.maxIOYAmmount;
-    }
-
-    private CompletableFuture<Void> _launchListeningWebSocketServer(){
-        final CompletableFuture<Void> result = new CompletableFuture<Void>();
-        new Thread(() -> {
-            if (USE_MOCK_NETWORK) {
-                    MockHosts.registerPlugin(pluginConfig.listening_host, pluginConfig.listening_port, this);
-                    result.complete(null); // TODO:(0) Check if that's OK for CompletableFuture<Void>
-                    System.out.println("Connector '"+this.parentConnector.config.ilpAddress +
-                        "': plugin '"+this.getClass().getCanonicalName()+"' listening for ws clients from ledger||peer '"+ basePluginConfig.ledgerPrefix+"'\n"
-                      + " listening @ "+pluginConfig.listening_host +":" +pluginConfig.listening_port);
-            } else {
-                // Instantiate new websocket server listening for client connections
-                result.completeExceptionally(
-                       new RuntimeException("Not implemented"));
-                // TODO:(0) IMPLEMENT
-            }
-            this.status = Status.CONNECTED;
-        }).start();
-        return result;
+        this.requestHandler = requestHandler;
     }
 
     /**
@@ -250,6 +236,23 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         final CompletableFuture<Void> result = new CompletableFuture<Void>();
         // TODO:(0) Retry. It's quite possible that in some setups both peers are restarted at the same time.
         // (only needed for the client roll, server does not need to reconnect, just listen)
+        final String verticleID = "1"; // TODO:(0)
+        final String tls_key_path = "./certs_vault/tls_key.pem";
+        final String tls_crt_path = "./certs_vault/tls_cert.pem";
+        ;
+        ;
+
+        this.ilpHTTPSServer = new HTTPSServer(
+                this.requestHandler,
+                verticleID,
+                this.pluginConfig.listening_host,
+                this.pluginConfig.listening_port,
+                tls_key_path,
+                tls_crt_path,
+                this.pluginConfig.remote_host,
+                this.pluginConfig.remote_port
+            );
+        // TODO:(0) use thread pool from executor. Not new thread
         new Thread(() -> {
             // TODO:(1) Do a "get head" or HTTP 2.0 connection
             result.complete(null); // TODO:(0) Check if that's OK for CompletableFuture<Void>
