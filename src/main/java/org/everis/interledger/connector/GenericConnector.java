@@ -1,27 +1,53 @@
 package org.everis.interledger.connector;
 
+import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
-import org.interledger.InterledgerAddress;
+import org.interledger.cryptoconditions.Condition;
+import org.interledger.cryptoconditions.Fulfillment;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 // TODO:(0) Rename generic to Simple? Generic has many interpretations (base class, ...)
+
+// TODO:(0) Add default route
+// TODO:(0) Add list of known fulfillments
+/* TODO:(0) Add handleTransfer (transfer, paymentPacket) with next logic:
+ *   handleTransfer (transfer, paymentPacket) {
+ *     if (this.knownFulfillments[transfer.executionCondition.toString('hex')]) {
+ *       return Promise.resolve(this.knownFulfillments[transfer.executionCondition.toString('hex')])
+ *     }
+ *     return Promise.resolve(this.forwarder.forward(transfer, paymentPacket))
+ *   },
+ */
+// TODO:(0) Add forwarder entity?
+
 /**
  * generic connector for processing transfer between x ledgers connected to the connector.
  */
 public class GenericConnector {
-    public final ConnectorConfig config;
+    public  final ConnectorConfig config;
     private final List<BasePlugin> plugin_list;
-    private RouteTable routeTable;
+    private final Forwarder forwarder;
+    private final Map<Condition, Fulfillment> knownFulfillments = new HashMap<Condition, Fulfillment>();
 
     private GenericConnector(ConnectorConfig config) {
-        plugin_list = config.plugins;
-        /* For now (2018-01-08) the inital routing table
-         * from basePluginConfig is the final one */
-        routeTable = config.initialRoutingTable;
         this.config = config;
+        plugin_list = config.plugins;
+        this.forwarder = new Forwarder(this, config.initialRoutingTable, new Object() /*quoter*/);
+    }
+
+    private CompletableFuture<Fulfillment> handleTransfer(ILPTransfer transfer) {
+        CompletableFuture<Fulfillment> result = new CompletableFuture<Fulfillment>();
+        Fulfillment ff = this.knownFulfillments.get(transfer.getCondition());
+        if (this.knownFulfillments.get(transfer.getCondition()) != null) {
+            result.complete(ff);
+        } else {
+            return forwarder.forwardPayment(transfer, new Object() /*TODO:(0) paymentPacket*/);
+        }
+        return result;
     }
 
     public static GenericConnector build(ConnectorConfig config) {
@@ -42,10 +68,7 @@ public class GenericConnector {
         return CompletableFuture.allOf(connect_list);
     }
 
-/// /**
-///  * notify the destination ledger for a new ilp transfer prepared.
-///  * @param newTransfer
-///  */
+
 /// public void notifyPreparePayment(ILPTransfer newTransfer) {
 ///     InterledgerAddress destinationLedgerPrefix = newTransfer.getDestinationAccount().getPrefix();
 ///     if(!this.connectorPLugins.containsKey(destinationLedgerPrefix)) {

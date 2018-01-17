@@ -17,7 +17,6 @@ public abstract class BasePluginConfig {
     public final CurrencyUnit currency;
     public final InterledgerAddress ledgerPrefix; // TODO:(0) when we receive getInfo() compare and raise exception if do not match
 
-
     public final int    secsReconnect;
 
     public BasePluginConfig(Class pluginClass, PropertiesConfig propConfig) {
@@ -40,7 +39,7 @@ public abstract class BasePluginConfig {
         String pluginClassName = propConfig.getCleanString("plugin.className");
 
         if (pluginClassName.equals(ALLOWED_PLUGIN_LIST[paymentChannelIdx]) ){
-            return new PaymentChannelConfig(propConfig);
+            return new ILPOverHTTPConfig(propConfig);
         } else if (pluginClassName.equals(ALLOWED_PLUGIN_LIST[mockSettlementLedger]) ) {
             return new MockSettlementLedgerConfig(propConfig);
         } else {

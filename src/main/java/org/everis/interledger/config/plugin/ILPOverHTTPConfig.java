@@ -6,7 +6,7 @@ import org.everis.interledger.plugins.ILPOverHTTPPlugin;
 import java.math.BigInteger;
 
 
-public class PaymentChannelConfig extends BasePluginConfig {
+public class ILPOverHTTPConfig extends BasePluginConfig {
 
         public final String listening_host;
         public final int    listening_port;
@@ -16,7 +16,7 @@ public class PaymentChannelConfig extends BasePluginConfig {
         public final BigInteger maxIOYAmmount; // "I Owe You"  max account
         public final BigInteger maxYOMAmmount; // "You Owe me" max account
 
-        PaymentChannelConfig(PropertiesConfig propConfig){
+        ILPOverHTTPConfig(PropertiesConfig propConfig){
             super( ILPOverHTTPPlugin.class, propConfig );
             secret        = propConfig.getCleanString("plugin.peer_plugin.secret");
 

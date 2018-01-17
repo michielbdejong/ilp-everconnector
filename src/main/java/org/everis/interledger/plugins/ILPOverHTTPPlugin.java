@@ -8,14 +8,12 @@ import io.vertx.core.*;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
-import org.everis.interledger.config.plugin.PaymentChannelConfig;
-import org.everis.interledger.tools.mockILPNetwork.MockHosts;
+import org.everis.interledger.config.plugin.ILPOverHTTPConfig;
 import org.interledger.InterledgerAddress;
 
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -27,7 +25,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-
 
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
@@ -200,7 +197,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         }
     }
 
-    final PaymentChannelConfig pluginConfig;
+    final ILPOverHTTPConfig pluginConfig;
     final Vertx vertx = Vertx.vertx();
     HTTPSServer ilpHTTPSServer;
     final IRequestHandler requestHandler;
@@ -220,7 +217,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
      * @param pluginConfig   : Config for initial setup
      */
     public ILPOverHTTPPlugin(
-            PaymentChannelConfig pluginConfig, IRequestHandler requestHandler) {
+            ILPOverHTTPConfig pluginConfig, IRequestHandler requestHandler) {
         super(pluginConfig);
         this.pluginConfig = pluginConfig;
         maxIOYAmmount = this.pluginConfig.maxIOYAmmount;
