@@ -31,7 +31,7 @@ public class RouteTable {
     }
 
     // For now (2018-01-17) The routes are hardcoded at config.
-    private Map<InterledgerAddress, Route> prefixToRoute;
+    private Map<InterledgerAddress, Route> prefixToRoute = new HashMap<InterledgerAddress, Route>();
     private Route defaultRoute = null;
 
     private RouteTable(){ }

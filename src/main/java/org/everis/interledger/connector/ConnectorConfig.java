@@ -6,6 +6,8 @@ import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.InterledgerAddress;
 import org.interledger.ilqp.LiquidityCurve;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,19 +35,29 @@ public class ConnectorConfig {
       int lastIdxOfDir = configFile.lastIndexOf('/');
       String basePath = configFile.substring(0,lastIdxOfDir);
       for (String peerConfigFile : peerConfigList) {
-         BasePluginConfig pluginConfig = BasePluginConfig.build(basePath+"/"+peerConfigFile);
-         try {
-             BasePlugin plugin = (BasePlugin)pluginConfig.pluginClass
-              .getConstructor(pluginConfig.configClass, BasePlugin.IRequestHandler.class)
-              .newInstance(pluginConfig, requestHandler);
-             plugins.add(plugin);
-             rtBuilder.addRoute(new Route(pluginConfig.ledgerPrefix, plugin, pluginConfig.liquidityCurve));
-         }catch(Exception e){
-             String sError = "While reading plugin basePluginConfig file '"+peerConfigFile+"' next exception was raised:\n"
-                   + "Could not configure connector due to:"+e.toString();
-             throw new RuntimeException(sError);
-         }
+          String aux = basePath+"/"+peerConfigFile;
+          System.out.println("loading peer Config File: "+aux+"'");
+          BasePluginConfig pluginConfig = BasePluginConfig.build(aux);
+          try {
+              BasePlugin plugin = (BasePlugin)pluginConfig.pluginClass
+               .getConstructor(pluginConfig.configClass, BasePlugin.IRequestHandler.class)
+               .newInstance(pluginConfig, requestHandler);
+              plugins.add(plugin);
+              rtBuilder.addRoute(new Route(pluginConfig.ledgerPrefix, plugin, pluginConfig.liquidityCurve));
+          }catch(Exception e){
+              StringWriter writer = new StringWriter();
+              PrintWriter printWriter = new PrintWriter( writer );
+              e.printStackTrace( printWriter );
+              printWriter.flush();
+              String stackTrace = writer.toString();
+              String sError = "While reading plugin basePluginConfig file '"+peerConfigFile+"' next exception was raised:\n"
+                    + "Could not configure connector due to:"+e.toString() +"\n"
+                    + stackTrace ;
+
+              throw new RuntimeException(sError);
+          }
       }
+      rtBuilder.setDefaultRoute(InterledgerAddress.of(propConfig.getString("default_route.prefix")));
       this.initialRoutingTable = rtBuilder.build();
 
    }
