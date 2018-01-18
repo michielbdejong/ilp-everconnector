@@ -237,8 +237,8 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         final CompletableFuture<Void> result = new CompletableFuture<Void>();
         // TODO:(0.5) Retry. It's quite possible that in some setups both peers are restarted at the same time.
         // (only needed for the client roll, server does not need to reconnect, just listen)
-        final String tls_key_path = "./certs_vault/tls_key.pem";
-        final String tls_crt_path = "./certs_vault/tls_cert.pem";
+        final String tls_key_path = "./certs_vault/tls.key";
+        final String tls_crt_path = "./certs_vault/tls.cert";
 
         this.ilpHTTPSServer = new HTTPSServer(
                 requestHandler,
