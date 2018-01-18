@@ -140,7 +140,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                                 .setKeyValue(_readRelativeFile(tls_key_path))
                                 .setCertValue(_readRelativeFile(tls_crt_path))
                 );
-                // TODO:(0?) Use key Store with password protection
+                // TODO:(1) Use key Store with password protection
                 // .setKeyStoreOptions(
                 //    new JksOptions().
                 //        setPath("server-keystore.jks").
@@ -174,7 +174,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                 String Base64ExecCondition = headers.get("ilp-condition");
                 Instant expiresAt = Instant.from(ZonedDateTime.parse(headers.get("ilp-expiry")));
                 String amount = headers.get("ilp-amount");
-                ByteBuffer endToEndData = null /* TODO:(0) Add body as endToEndData*/;
+                ByteBuffer endToEndData = null /* TODO:(0.5) Add body as endToEndData*/;
                 CompletableFuture<IRequestHandler.ILPResponse> ilpResponse =
                         this.requestHandler.onRequestReceived(
                                 destination, Base64ExecCondition, expiresAt, amount, endToEndData);
@@ -184,7 +184,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                 do {
                     retry = false;
                     try {
-                        // TODO:(0) Blocking call!! exec in thread pool
+                        // TODO:(0.5) Blocking call!! exec in thread pool
                         IRequestHandler.ILPResponse ilpRespone = ilpResponse.get();
                         if (ilpRespone.packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR) {
                             throw ilpRespone.optILPException.get();
@@ -193,7 +193,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
 
 
                     } catch (InterruptedException e) {
-                        // TODO:(0) Log interrupted exception
+                        // TODO:(0.5) Log interrupted exception
                         retry = true; // Retry
                     } catch (ExecutionException e) {
                         response.setStatusCode(400);
@@ -237,7 +237,6 @@ public class ILPOverHTTPPlugin extends BasePlugin {
     final ILPOverHTTPConfig pluginConfig;
     final Vertx vertx = Vertx.vertx();
     HTTPSServer ilpHTTPSServer;
-    final IRequestHandler requestHandler;
 
     /*
      * TODO:(1) In a production plugin re-read current balance
@@ -255,11 +254,10 @@ public class ILPOverHTTPPlugin extends BasePlugin {
      */
     public ILPOverHTTPPlugin(
             ILPOverHTTPConfig pluginConfig, IRequestHandler requestHandler) {
-        super(pluginConfig);
+        super(pluginConfig, requestHandler);
         this.pluginConfig = pluginConfig;
         maxIOYAmmount = this.pluginConfig.maxIOYAmmount;
         maxYOMAmmount = this.pluginConfig.maxIOYAmmount;
-        this.requestHandler = requestHandler;
     }
 
     /**
@@ -268,16 +266,16 @@ public class ILPOverHTTPPlugin extends BasePlugin {
     @Override
     public CompletableFuture<Void> connect() {
         final CompletableFuture<Void> result = new CompletableFuture<Void>();
-        // TODO:(0) Retry. It's quite possible that in some setups both peers are restarted at the same time.
+        // TODO:(0.5) Retry. It's quite possible that in some setups both peers are restarted at the same time.
         // (only needed for the client roll, server does not need to reconnect, just listen)
-        final String verticleID = "1"; // TODO:(0)
+        final String verticleID = "1"; // TODO:(0.5)
         final String tls_key_path = "./certs_vault/tls_key.pem";
         final String tls_crt_path = "./certs_vault/tls_cert.pem";
         ;
         ;
 
         this.ilpHTTPSServer = new HTTPSServer(
-                this.requestHandler,
+                requestHandler,
                 verticleID,
                 this.pluginConfig.listening_host,
                 this.pluginConfig.listening_port,
@@ -286,10 +284,10 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                 this.pluginConfig.remote_host,
                 this.pluginConfig.remote_port
             );
-        // TODO:(0) use thread pool from executor. Not new thread
+        // TODO:(0.5) use thread pool from executor. Not new thread
         new Thread(() -> {
             // TODO:(1) Do a "get head" or HTTP 2.0 connection
-            result.complete(null); // TODO:(0) Check if that's OK for CompletableFuture<Void>
+            result.complete(null); // TODO:(0.1) Check if that's OK for CompletableFuture<Void>
             this.status = Status.CONNECTED;
         }).start();
         return result;
@@ -297,7 +295,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
 
     @Override
     public CompletableFuture<Void> disconnect() {
-        // TODO:(0) IMPLEMENT
+        // TODO:(0.5) IMPLEMENT
         this.status = Status.DISCONNECTED;
         CompletableFuture<Void> result = new CompletableFuture<Void>();
         return result;

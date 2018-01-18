@@ -19,7 +19,8 @@ public class ConnectorConfig {
    public final List<BasePlugin> plugins;
    public final RouteTable initialRoutingTable;
 
-   public ConnectorConfig(final String configFile){
+   public ConnectorConfig(final String configFile, BasePlugin.IRequestHandler requestHandler ){
+
       propConfig = new PropertiesConfig(configFile);
       ilpAddress = InterledgerAddress.of(propConfig.getCleanString("connector.ilpAddress"));
       String peerConfigFiles = propConfig.getCleanString("connector.peersConfigFiles");
@@ -35,8 +36,8 @@ public class ConnectorConfig {
          BasePluginConfig pluginConfig = BasePluginConfig.build(basePath+"/"+peerConfigFile);
          try {
              BasePlugin plugin = (BasePlugin)pluginConfig.pluginClass
-              .getConstructor(pluginConfig.configClass)
-              .newInstance(pluginConfig);
+              .getConstructor(pluginConfig.configClass, BasePlugin.IRequestHandler.class)
+              .newInstance(pluginConfig, requestHandler);
              plugins.add(plugin);
              rtBuilder.addRoute(new Route(pluginConfig.ledgerPrefix, plugin, pluginConfig.liquidityCurve));
          }catch(Exception e){

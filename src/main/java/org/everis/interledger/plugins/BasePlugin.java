@@ -17,9 +17,9 @@ public abstract class BasePlugin {
 
     protected GenericConnector parentConnector; // Ref to the parent connector instantiating this plugin
 
-    public final BasePluginConfig basePluginConfig; // Common config applying to all shorts of plugins
+    protected final BasePluginConfig basePluginConfig; // Common config applying to all shorts of plugins
 
-    private IRequestHandler requestHandler = null;
+    protected final IRequestHandler requestHandler;
     /*
      * REF: https://github.com/interledger/rfcs/blob/master/0004-ledger-plugin-interface/0004-ledger-plugin-interface.md
      *
@@ -29,12 +29,13 @@ public abstract class BasePlugin {
      *                           |                        |                      |
      *             <--sendMoney--/          <--sendMoney--/        <--sendMoney--/
      */
-    protected BasePlugin(BasePluginConfig config){
+    public BasePlugin(BasePluginConfig config, IRequestHandler requestHandler){
         this.basePluginConfig = config;
+        this.requestHandler = requestHandler;
     }
 
     /*
-     * TODO:(0) This interface design is "arbitrary". Rethink how to do it.
+     * TODO:(0.5) This interface design is "arbitrary". Rethink how to do it.
      *  The idea is to use it as follows:
      *
      *  'external' will be in practice another peer connector or
@@ -52,7 +53,7 @@ public abstract class BasePlugin {
      *     plugin   -> plugin : forward to registered IRequestHandler list
      *     plug
      */
-    protected interface IRequestHandler {
+    public interface IRequestHandler {
 
         class ILPResponse {
             // TODO:(Quilt) There is no concept of type in Quilt org.interledger.InterledgerPacket
@@ -60,7 +61,7 @@ public abstract class BasePlugin {
             public final Optional<InterledgerProtocolException> optILPException;
             public final Optional<String> optBase64Fulfillment;
 
-            ILPResponse(
+            public ILPResponse(
                 int packetType,
                 Optional<InterledgerProtocolException> optILPException,
                 Optional<String> optBase64Fulfillment )
@@ -108,15 +109,6 @@ public abstract class BasePlugin {
      */
     public abstract boolean isConnected() ;
 
-    // TODO:(0) Use a builder instead of constructor to force registering the Request Handler
-    //     Now it's possible for developers to just forget and create a null pointer
-	public void registerRequestHandler(IRequestHandler requestHandler ) {
-	    if (this.requestHandler != null) {
-	        throw new RuntimeException("request Handler already registered for this plugin.");
-        }
-        this.requestHandler = requestHandler;
-    }
-
 	// TODO:(?) getBalance needed?
 	// public abstract CompletableFuture<String> getBalance ();
 
@@ -147,7 +139,7 @@ public abstract class BasePlugin {
     public abstract CompletableFuture<DataResponse> sendData(
             String ILPConditionBase64Encoded,
             InterledgerAddress destinantion,
-            Instant ilpExpiry /* TODO:(0) Drop?*/,
+            Instant ilpExpiry /* TODO:(0.5) Drop?*/,
             Optional<ByteBuffer> endToEndData
     );
 

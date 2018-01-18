@@ -5,7 +5,7 @@ import org.everis.interledger.plugins.ILPOverHTTPPlugin;
 
 import java.math.BigInteger;
 
-
+// TODO:(0.5) Make BasePluginConfig a member instead of inheriting
 public class ILPOverHTTPConfig extends BasePluginConfig {
 
         public final String listening_host;
