@@ -8,13 +8,52 @@ import java.util.List;
 import java.util.Map;
 
 public class RouteTable {
-    // For now (2018-01-17) The routes are hardcoded at config.
-    private final Map<InterledgerAddress, Route> prefixToRoute;
-    private final Route defaultRoute;
 
-    public RouteTable(Map<InterledgerAddress, Route> prefixToRouteFromConfig, Route defaultRoute){
-        this.prefixToRoute = prefixToRouteFromConfig;
-        this.defaultRoute = defaultRoute;
+    static class RouteTableBuilder {
+        final RouteTable routeTable = new RouteTable();
+        final List<Route>  route_list =new ArrayList<Route>();
+
+        public void addRoute(Route route) {
+            routeTable.addRoute(route);
+        }
+
+        public void setDefaultRoute(InterledgerAddress prefix) {
+            routeTable.setDefaultRoute(prefix);
+        }
+
+        public RouteTable build(){
+            if (routeTable.defaultRoute == null) {
+                throw new RuntimeException("you must call setDefaultRoute on RouteTable builder first");
+            }
+            return routeTable;
+        }
+
+    }
+
+    // For now (2018-01-17) The routes are hardcoded at config.
+    private Map<InterledgerAddress, Route> prefixToRoute;
+    private Route defaultRoute = null;
+
+    private RouteTable(){ }
+
+    public static RouteTableBuilder builder(){
+        return new RouteTableBuilder();
+    }
+
+    public void setDefaultRoute(InterledgerAddress prefix){
+        Route aux = prefixToRoute.get(prefix);
+        if (aux == null) {
+            String sError = "No plugin has a matching prefix for default route\n"
+                + "default routes are used to indicate the gateway for unkown routes"
+                + "Hint: If default_route.prefix=peer.connector2. @ connector1.prop and\n"
+                + "connector.peersConfigFiles=connector1_to_connector2_plugin.prop,....\n "
+                + " then some of the peersConfigFiles must have a  plugin.ledgerPrefix= matching "
+                +   "this default route:\n"
+                + "plugin.ledgerPrefix=peer.connector2. \n"
+                + "Then the connector will now what plugin to use to forward default route payments";
+            throw new RuntimeException(sError);
+        }
+        this.defaultRoute = aux;
     }
 
     public void addRoute(final Route route) {

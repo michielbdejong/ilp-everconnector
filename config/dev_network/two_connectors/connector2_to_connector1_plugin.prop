@@ -3,6 +3,7 @@ plugin.ledgerPrefix=peer.connector1.
 plugin.currency=EUR
 plugin.account=connector2
 plugin.secsReconnect=3
+plugin.liquidity_points=30:30;1000:1100
 plugin.peer_plugin.secret=secret_for_connector2
 plugin.peer_plugin.listening_host=host2
 plugin.peer_plugin.listening_port=5012

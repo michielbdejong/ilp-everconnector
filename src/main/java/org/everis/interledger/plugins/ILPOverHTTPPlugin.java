@@ -3,6 +3,43 @@ package org.everis.interledger.plugins;
 // REF 1: https://github.com/interledger/rfcs/pull/349
 // REF 2: ILP-over-HTTP JS Implementation: https://github.com/michielbdejong/ilp-plugin-http/blob/master/index.js
 
+/*
+ * ILP Over HTTP
+ *
+ * Interledger payment fields: (such as destination address)
+ * local to a specific hop fields: (such as the transfer amount)
+ *
+ * POST / HTTP/1.1
+ * ILP-Destination: g.crypto.bitcoin.1XPTgDRhN8RFnzniWCddobD9iKZatrvH4.~asdf1234
+ * ILP-Condition: x73kz0AGyqYqhw/c5LqMhSgpcOLF3rBS8GdR52hLpB8=
+ * ILP-Expiry: 2017-12-07T18:47:59.015Z
+ * ILP-Amount: 1000
+ *
+ *   Field            Type            Modified at  Description
+ *                                    Each Hop?
+ * -----------------------------------------------------------
+ *   ILP-Destination  ILP Address     N            Destination address of the payment
+ * -----------------------------------------------------------
+ *   ILP-Condition    32 Bytes        N            Exec. cond. of payment
+ *                    Base64-Encoded
+ *                    String (
+ *                     With Padding)
+ * -----------------------------------------------------------
+ *   ILP-Expiry       ISO 8601        Y            Expiry of the transfer
+ *                    UTC Timestamp
+ * -----------------------------------------------------------
+ *   ILP-Amount       Unsigned        Y            Transfer amount, denominated in
+ *                    64-Bit Integer               he minimum divisible units of the ledger.
+ *                                                 ote that this is the local transfer amount,
+ *                                                 ot the destination amount as in the original
+ *                                                 LP Payment Packet Format
+ * -----------------------------------------------------------
+ *   <body>           Binary,         N            End-to-end data used by
+ *                    32767 Bytes max              Transport Layer protocols
+ * -----------------------------------------------------------
+ *
+ */
+
 import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpServerResponse;
@@ -55,7 +92,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         final int    remote_port;
 
         // REF 3: VertX HTTPS server: https://github.com/vert-x3/vertx-examples/blob/master/core-examples/src/main/java/io/vertx/example/core/http/https/Server.java
-        public HTTPSServer(
+        private HTTPSServer(
                 IRequestHandler requestHandler,
                 String verticleID,
                 String listeningHost,

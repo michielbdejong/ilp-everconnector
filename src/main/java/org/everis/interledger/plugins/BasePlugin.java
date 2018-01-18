@@ -2,7 +2,6 @@ package org.everis.interledger.plugins;
 
 import org.everis.interledger.config.plugin.BasePluginConfig;
 import org.everis.interledger.connector.GenericConnector;
-import org.everis.interledger.org.everis.interledger.common.LedgerInfo;
 import org.interledger.InterledgerAddress;
 import org.interledger.InterledgerPacketType;
 import org.interledger.InterledgerProtocolException;
@@ -15,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
 
 // TODO:(quilt) Move to quilt/ilp-core (or quilt/ilp-connector-core or similar)
 public abstract class BasePlugin {
+
     protected GenericConnector parentConnector; // Ref to the parent connector instantiating this plugin
 
     public final BasePluginConfig basePluginConfig; // Common config applying to all shorts of plugins
@@ -29,7 +29,7 @@ public abstract class BasePlugin {
      *                           |                        |                      |
      *             <--sendMoney--/          <--sendMoney--/        <--sendMoney--/
      */
-    BasePlugin(BasePluginConfig config){
+    protected BasePlugin(BasePluginConfig config){
         this.basePluginConfig = config;
     }
 
@@ -108,6 +108,8 @@ public abstract class BasePlugin {
      */
     public abstract boolean isConnected() ;
 
+    // TODO:(0) Use a builder instead of constructor to force registering the Request Handler
+    //     Now it's possible for developers to just forget and create a null pointer
 	public void registerRequestHandler(IRequestHandler requestHandler ) {
 	    if (this.requestHandler != null) {
 	        throw new RuntimeException("request Handler already registered for this plugin.");

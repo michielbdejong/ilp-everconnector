@@ -34,7 +34,15 @@ public class Forwarder {
         this.quoter = quoter;
     }
 
-
+    /*
+    105   findHop (address, amount) {
+    106     const curve = this.findCurve(address)
+    107     return {
+    108       onwardAmount: destToSource(amount, curve.buf),
+    109       onwardPeer: curve.peer
+    110     }
+    111   },
+     */
     public CompletableFuture<Fulfillment> forwardPayment(ILPTransfer transfer, Object paymentPacket) {
         // final Object payment = IlpPacket.deserializeIlpPayment(paymentPacket)
         CompletableFuture<Fulfillment> result = new CompletableFuture<Fulfillment>();
@@ -48,7 +56,9 @@ public class Forwarder {
                 .build();
                 result.completeExceptionally(new InterledgerProtocolException(ilpError));
         }
+        Route route = routeTable.findRouteByAddress(transfer.getDestinationAccount());
 
+        // TODO:(0) Implement
 /////   const { onwardAmount, onwardPeer } = this.quoter.findHop(payment.account, parseInt(payment.amount));
 /////   // console.log('quote', onwardAmount, onwardPeer)
 /////   if (!onwardPeer || !this.peers[onwardPeer]) {
