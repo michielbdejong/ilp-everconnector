@@ -61,7 +61,9 @@ public class GenericConnector {
     public CompletableFuture<Void> run(){
         CompletableFuture<Void>[] connect_list = new CompletableFuture[plugin_list.size()];
         int idx=0;
+        System.out.println("Connecting plugins ...");
         for (BasePlugin plugin : plugin_list) {
+            System.out.println("Connecting plugin ...");
             connect_list[idx] = plugin.connect();
             idx++;
         }

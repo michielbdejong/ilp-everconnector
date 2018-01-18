@@ -83,7 +83,6 @@ public class ILPOverHTTPPlugin extends BasePlugin {
 
     public class HTTPSServer extends AbstractVerticle {
         final IRequestHandler requestHandler;
-        final String verticleID;
         final String listeningHost;
         final int listeningPort;
         final String tls_key_path;
@@ -94,7 +93,6 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         // REF 3: VertX HTTPS server: https://github.com/vert-x3/vertx-examples/blob/master/core-examples/src/main/java/io/vertx/example/core/http/https/Server.java
         private HTTPSServer(
                 IRequestHandler requestHandler,
-                String verticleID,
                 String listeningHost,
                 int listeningPort,
                 String tls_key_path,
@@ -103,7 +101,6 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                 int    remote_port
         ) {
             this.requestHandler = Objects.requireNonNull(requestHandler);
-            this.verticleID     = Objects.requireNonNull(verticleID    );
             this.listeningHost  = Objects.requireNonNull(listeningHost );
             this.listeningPort  = Objects.requireNonNull(listeningPort );
             this.tls_key_path   = Objects.requireNonNull(tls_key_path  );
@@ -149,20 +146,6 @@ public class ILPOverHTTPPlugin extends BasePlugin {
             return serverOptions;
         }
 
-        public void run() {
-            VertxOptions options = new VertxOptions();
-
-            MessagePassingQueue.Consumer<Vertx> runner = vertx -> {
-                try {
-                    vertx.deployVerticle(verticleID);
-                } catch (Throwable t) {
-                    t.printStackTrace();
-                }
-            };
-
-            Vertx vertx = Vertx.vertx(options);
-            runner.accept(vertx);
-        };
 
         @Override
         public void start() throws Exception {
@@ -215,22 +198,8 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                     }
                 } while (retry);
                 response.end("");
-/////           switch (obj.type)
-/////               case IlpPacket.Type.TYPE_ILP_FULFILL:
-/////                   statusCode = 200
-/////                   headers = {
-/////                           'ilp-fulfillment': obj.data.fulfillment.toString('base64'),
-/////                   }
-/////           res.writeHead(statusCode, headers)
-/////           res.end(obj.data.data)
-/////       return new Promise(resolve =>
-/////               this.server.listen(this.opts.port, () =>
-/////                       logPlugin('listening for http on port ' + this.opts.port)
-/////                       this._connected = true
-/////                       this.emit('connect')
-/////                       resolve()
-
             }).listen(listeningPort);
+            System.out.println("ILP-over-HTTP plugin listening @ " + listeningPort);
         }
     }
 
@@ -268,15 +237,11 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         final CompletableFuture<Void> result = new CompletableFuture<Void>();
         // TODO:(0.5) Retry. It's quite possible that in some setups both peers are restarted at the same time.
         // (only needed for the client roll, server does not need to reconnect, just listen)
-        final String verticleID = "1"; // TODO:(0.5)
         final String tls_key_path = "./certs_vault/tls_key.pem";
         final String tls_crt_path = "./certs_vault/tls_cert.pem";
-        ;
-        ;
 
         this.ilpHTTPSServer = new HTTPSServer(
                 requestHandler,
-                verticleID,
                 this.pluginConfig.listening_host,
                 this.pluginConfig.listening_port,
                 tls_key_path,
@@ -285,11 +250,22 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                 this.pluginConfig.remote_port
             );
         // TODO:(0.5) use thread pool from executor. Not new thread
-        new Thread(() -> {
-            // TODO:(1) Do a "get head" or HTTP 2.0 connection
-            result.complete(null); // TODO:(0.1) Check if that's OK for CompletableFuture<Void>
-            this.status = Status.CONNECTED;
-        }).start();
+
+        // TODO:(1) Do a "get head" or HTTP 2.0 connection
+        VertxOptions options = new VertxOptions();
+        MessagePassingQueue.Consumer<Vertx> runner = vertx -> {
+            try {
+                vertx.deployVerticle(ilpHTTPSServer);
+            } catch (Throwable t) {
+            }
+        };
+
+        Vertx vertx = Vertx.vertx(options);
+        runner.accept(vertx);
+
+        result.complete(null); // TODO:(0.1) Check if that's OK for CompletableFuture<Void>
+        this.status = Status.CONNECTED;
+
         return result;
     }
 

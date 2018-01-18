@@ -74,5 +74,11 @@ public class NetworkWithTwoConnectors {
 
         connector2.run();
         connector1.run();
+
+        try {
+            Thread.sleep(100000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

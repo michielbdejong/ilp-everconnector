@@ -4,20 +4,18 @@ import org.everis.interledger.config.plugin.BasePluginConfig;
 import org.everis.interledger.config.PropertiesConfig;
 import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.InterledgerAddress;
-import org.interledger.ilqp.LiquidityCurve;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * List of peers connectors.
  */
 public class ConnectorConfig {
    public final InterledgerAddress ilpAddress;
-   public final PropertiesConfig propConfig;
+   private final PropertiesConfig propConfig;
    public final List<BasePlugin> plugins;
    public final RouteTable initialRoutingTable;
 
@@ -27,9 +25,7 @@ public class ConnectorConfig {
       ilpAddress = InterledgerAddress.of(propConfig.getCleanString("connector.ilpAddress"));
       String peerConfigFiles = propConfig.getCleanString("connector.peersConfigFiles");
       String[] peerConfigList = peerConfigFiles.split(";");
-      plugins = new ArrayList<BasePlugin>();
-      Map<InterledgerAddress, Route> prefixToRouteFromConfig;
-      Route defaultRoute;
+      plugins = new ArrayList<>();
       RouteTable.RouteTableBuilder rtBuilder = RouteTable.builder();
 
       int lastIdxOfDir = configFile.lastIndexOf('/');
