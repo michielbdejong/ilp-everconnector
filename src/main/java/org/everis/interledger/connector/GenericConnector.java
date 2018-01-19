@@ -1,5 +1,7 @@
 package org.everis.interledger.connector;
 
+import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.cryptoconditions.Condition;
@@ -32,11 +34,15 @@ public class GenericConnector {
     private final List<BasePlugin> plugin_list;
     private final Forwarder forwarder;
     private final Map<Condition, Fulfillment> knownFulfillments = new HashMap<Condition, Fulfillment>();
+    // vertx: Framework used for async handling
+    public final Vertx vertx;
 
     private GenericConnector(ConnectorConfig config) {
         this.config = config;
         plugin_list = config.plugins;
         this.forwarder = new Forwarder(this, config.initialRoutingTable, new Object() /*quoter*/);
+        VertxOptions options = new VertxOptions();
+        this.vertx = Vertx.vertx(options);
     }
 
     private CompletableFuture<Fulfillment> handleTransfer(ILPTransfer transfer) {
@@ -59,6 +65,8 @@ public class GenericConnector {
     }
 
     public CompletableFuture<Void> run(){
+        // TODO:(1) Do a "get head" or HTTP 2.0 connection
+
         CompletableFuture<Void>[] connect_list = new CompletableFuture[plugin_list.size()];
         int idx=0;
         System.out.println("Connecting plugins ...");

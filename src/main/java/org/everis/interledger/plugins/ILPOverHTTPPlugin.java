@@ -204,7 +204,6 @@ public class ILPOverHTTPPlugin extends BasePlugin {
     }
 
     final ILPOverHTTPConfig pluginConfig;
-    final Vertx vertx = Vertx.vertx();
     HTTPSServer ilpHTTPSServer;
 
     /*
@@ -251,8 +250,6 @@ public class ILPOverHTTPPlugin extends BasePlugin {
             );
         // TODO:(0.5) use thread pool from executor. Not new thread
 
-        // TODO:(1) Do a "get head" or HTTP 2.0 connection
-        VertxOptions options = new VertxOptions();
         MessagePassingQueue.Consumer<Vertx> runner = vertx -> {
             try {
                 vertx.deployVerticle(ilpHTTPSServer);
@@ -260,8 +257,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
             }
         };
 
-        Vertx vertx = Vertx.vertx(options);
-        runner.accept(vertx);
+        runner.accept(parentConnector.vertx);
 
         result.complete(null); // TODO:(0.1) Check if that's OK for CompletableFuture<Void>
         this.status = Status.CONNECTED;
@@ -311,7 +307,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                 .setUserAgent("My-App/1.2.3")
                 .setFollowRedirects(false);
         options.setKeepAlive(false);
-        WebClient client = WebClient.create(vertx, options);
+        WebClient client = WebClient.create(parentConnector.vertx, options);
 
         // POST TO THE SERVER
 
