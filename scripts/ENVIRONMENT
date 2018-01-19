@@ -1,6 +1,19 @@
+CURL="curl --insecure -vs "
+function header() {
+   echo "-----------------------------"
+   echo "---- $1 "
+   echo "-----------------------------"
+}
+
 URL_CONNECTOR1=https://localhost:5011
 URL_CONNECTOR2=https://localhost:5012
-CURL="curl --insecure "
-EXPIRE_10SECS="2011-04-15T20:08:18Z"
+CONDOK="payed"
+CONDKO="non_payed"
+
+EXPIRE_10SECS=`date +"%Y-%m-%dT%H:%M:%SZ" --date="+ 10 seconds"`
 PAY1_DST="g.crytpo.xrp.1234"
 PAY1_AMT="100"
+
+EXPIRE__WRONG="20171111"
+WRONG_DS="wrongILPAddress" # WRONG DESTINATION ADDRESS
+WRNG_AMT="1000.00"

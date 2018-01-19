@@ -91,7 +91,9 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         final String remote_host;
         final int    remote_port;
 
-        // REF 3: VertX HTTPS server: https://github.com/vert-x3/vertx-examples/blob/master/core-examples/src/main/java/io/vertx/example/core/http/https/Server.java
+        // REF 3: VertX HTTPS server:
+        // https://github.com/vert-x3/vertx-examples/blob/master/core-examples/
+        // src/main/java/io/vertx/example/core/http/https/Server.java
         private HTTPSServer(
                 IRequestHandler requestHandler,
                 String listeningHost,
@@ -153,7 +155,6 @@ public class ILPOverHTTPPlugin extends BasePlugin {
             HttpServer server = vertx.createHttpServer( _getHTTPServerOptions() );
 
             server.requestHandler(req -> {
-System.out.println("deleteme request received");
                 MultiMap headers = req.headers();
                 InterledgerAddress destination = InterledgerAddress.of(headers.get("ilp-destination"));
                 String Base64ExecCondition = headers.get("ilp-condition");
@@ -161,15 +162,14 @@ System.out.println("deleteme request received");
                 String amount = headers.get("ilp-amount");
                 ByteBuffer endToEndData = null /* TODO:(0.5) Add body as endToEndData*/;
                 CompletableFuture<IRequestHandler.ILPResponse> ilpResponseFuture =
-                        this.requestHandler.onRequestReceived(
-                                destination, Base64ExecCondition, expiresAt, amount, endToEndData);
+                    this.requestHandler.onRequestReceived(
+                        destination, Base64ExecCondition, expiresAt, amount, endToEndData);
                 final HttpServerResponse response = req.response();
                 final MultiMap res_headers = response.headers();
                 String sResponse = "";
                 try {
                     boolean retry;
                     do {
-                        System.out.println("deleteme request 1");
                         retry = false;
                         try {
                             // TODO:(0.5) Blocking call!! exec in thread pool
@@ -177,38 +177,31 @@ System.out.println("deleteme request received");
                             if (ilpResponse.packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR) {
                                 throw ilpResponse.optILPException.get();
                             } else {
-                                sResponse = ilpResponse.optBase64Fulfillment.get();
+                                // TODO:(0) Write recieved endToEndData in sResponse (HTTP body)
+                                response.putHeader("ILP-Fulfillment", ilpResponse.optBase64Fulfillment.get());
                                 response.setStatusCode(200);
                             }
                         } catch (InterruptedException e) {
                             // TODO:(0.5) Log interrupted exception
                             retry = true; // Retry
-                        } catch (ExecutionException e) {
-                            response.setStatusCode(400);
-                            final InterledgerProtocolError ilpError =
-                                (e.getCause() instanceof InterledgerProtocolException)
-                                    ? ((InterledgerProtocolException) e.getCause()).getInterledgerProtocolError()
-                                    : InterledgerProtocolError.builder()
-                                    .errorCode(InterledgerProtocolError.ErrorCode.T00_INTERNAL_ERROR)
-                                    .triggeredByAddress(parentConnector.config.ilpAddress)
-                                    // .forwardedByAddresses(ImmutableList.of())
-                                    .triggeredAt(Instant.now())
-                                    // .data()
-                                    .build();
-                            res_headers.set("ilp-error-Code", ilpError.getErrorCode().getCode());
-                            res_headers.set("ilp-error-Name", ilpError.getErrorCode().getName());
-                            res_headers.set("ilp-error-Triggered-By", ilpError.getTriggeredByAddress().toString());
-                            res_headers.set("ilp-error-Triggered-At", ilpError.getTriggeredAt().toString());
-                            res_headers.set("ilp-error-Message", e.toString());
                         }
                     } while (retry);
                 }catch(Exception e){
-                    if (e instanceof InterledgerProtocolException) {
-
-                    } else {
-                        sResponse = "";
-                        // TODO:(0)
-                    }
+                    InterledgerProtocolException finalExp = (e instanceof InterledgerProtocolException)
+                        ? (InterledgerProtocolException) e
+                        : new InterledgerProtocolException(InterledgerProtocolError.builder()
+                           .errorCode(InterledgerProtocolError.ErrorCode.T00_INTERNAL_ERROR)
+                           .triggeredByAddress(parentConnector.config.ilpAddress)
+                           .triggeredAt(Instant.now())
+                           // .data()
+                           .build());
+                    InterledgerProtocolError ilpError = finalExp.getInterledgerProtocolError();
+                    response.setStatusCode(400);
+                    res_headers.set("ilp-error-Code", ilpError.getErrorCode().getCode());
+                    res_headers.set("ilp-error-Name", ilpError.getErrorCode().getName());
+                    res_headers.set("ilp-error-Triggered-By", ilpError.getTriggeredByAddress().toString());
+                    res_headers.set("ilp-error-Triggered-At", ilpError.getTriggeredAt().toString());
+                    res_headers.set("ilp-error-Message", e.toString());
                 }
                 response.end(sResponse);
             }).listen(listeningPort);
