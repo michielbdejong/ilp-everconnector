@@ -2,6 +2,8 @@ package org.everis.interledger.plugins;
 
 // REF 1: https://github.com/interledger/rfcs/pull/349
 // REF 2: ILP-over-HTTP JS Implementation: https://github.com/michielbdejong/ilp-plugin-http/blob/master/index.js
+// REF 3: Writting HTTP servers and clients: http://vertx.io/docs/vertx-core/java/#_writing_http_servers_and_clients
+
 
 /*
  * ILP Over HTTP
@@ -149,31 +151,53 @@ public class ILPOverHTTPPlugin extends BasePlugin {
             return serverOptions;
         }
 
+        private void __respondWithError(HttpServerResponse response, Throwable e) {
+            e.printStackTrace();
+            final MultiMap res_headers = response.headers();
+            InterledgerProtocolException finalExp = (e instanceof InterledgerProtocolException)
+                ? (InterledgerProtocolException) e
+                : new InterledgerProtocolException(InterledgerProtocolError.builder()
+                   .errorCode(InterledgerProtocolError.ErrorCode.T00_INTERNAL_ERROR)
+                   .triggeredByAddress(parentConnector.config.ilpAddress)
+                   .triggeredAt(Instant.now())
+                   // .data()
+                   .build());
+            InterledgerProtocolError ilpError = finalExp.getInterledgerProtocolError();
+            response.setStatusCode(400);
+            res_headers.set("ilp-error-Code", ilpError.getErrorCode().getCode());
+            res_headers.set("ilp-error-Name", ilpError.getErrorCode().getName());
+            res_headers.set("ilp-error-Triggered-By", ilpError.getTriggeredByAddress().toString());
+            res_headers.set("ilp-error-Triggered-At", ilpError.getTriggeredAt().toString());
+            res_headers.set("ilp-error-Message", e.toString());
+            response.end("");
+        }
+
 
         @Override
         public void start() throws Exception {
             HttpServer server = vertx.createHttpServer( _getHTTPServerOptions() );
 
             server.requestHandler(req -> {
-                MultiMap headers = req.headers();
-                InterledgerAddress destination = InterledgerAddress.of(headers.get("ilp-destination"));
-                String Base64ExecCondition = headers.get("ilp-condition");
-                Instant expiresAt = Instant.from(ZonedDateTime.parse(headers.get("ilp-expiry")));
-                String amount = headers.get("ilp-amount");
-                ByteBuffer endToEndData = null /* TODO:(0.5) Add body as endToEndData*/;
-                CompletableFuture<IRequestHandler.ILPResponse> ilpResponseFuture =
-                    this.requestHandler.onRequestReceived(
-                        destination, Base64ExecCondition, expiresAt, amount, endToEndData);
                 final HttpServerResponse response = req.response();
-                final MultiMap res_headers = response.headers();
-                String sResponse = "";
                 try {
+                    MultiMap headers = req.headers();
+                    InterledgerAddress destination = InterledgerAddress.of(headers.get("ilp-destination"));
+                    String Base64ExecCondition = headers.get("ilp-condition");
+                    Instant expiresAt = Instant.from(ZonedDateTime.parse(headers.get("ilp-expiry")));
+                    String amount = headers.get("ilp-amount");
+                    ByteBuffer endToEndData = null /* TODO:(0.5) Add body as endToEndData*/;
+                    CompletableFuture<IRequestHandler.ILPResponse> ilpResponseFuture =
+                            this.requestHandler.onRequestReceived(
+                                    destination, Base64ExecCondition, expiresAt, amount, endToEndData);
+                    final MultiMap res_headers = response.headers();
+                    String sResponse = "";
                     boolean retry;
                     do {
                         retry = false;
                         try {
                             // TODO:(0.5) Blocking call!! exec in thread pool
-                            IRequestHandler.ILPResponse ilpResponse = ilpResponseFuture.get();
+                            IRequestHandler.ILPResponse ilpResponse = null;
+                            ilpResponse = ilpResponseFuture.get();
                             if (ilpResponse.packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR) {
                                 throw ilpResponse.optILPException.get();
                             } else {
@@ -186,24 +210,10 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                             retry = true; // Retry
                         }
                     } while (retry);
-                }catch(Exception e){
-                    InterledgerProtocolException finalExp = (e instanceof InterledgerProtocolException)
-                        ? (InterledgerProtocolException) e
-                        : new InterledgerProtocolException(InterledgerProtocolError.builder()
-                           .errorCode(InterledgerProtocolError.ErrorCode.T00_INTERNAL_ERROR)
-                           .triggeredByAddress(parentConnector.config.ilpAddress)
-                           .triggeredAt(Instant.now())
-                           // .data()
-                           .build());
-                    InterledgerProtocolError ilpError = finalExp.getInterledgerProtocolError();
-                    response.setStatusCode(400);
-                    res_headers.set("ilp-error-Code", ilpError.getErrorCode().getCode());
-                    res_headers.set("ilp-error-Name", ilpError.getErrorCode().getName());
-                    res_headers.set("ilp-error-Triggered-By", ilpError.getTriggeredByAddress().toString());
-                    res_headers.set("ilp-error-Triggered-At", ilpError.getTriggeredAt().toString());
-                    res_headers.set("ilp-error-Message", e.toString());
+                    response.end(sResponse);
+                }catch (Throwable e) {
+                    __respondWithError(response, e.getCause()!=null ? e.getCause() : e);
                 }
-                response.end(sResponse);
             }).listen(listeningPort);
             System.out.println("ILP-over-HTTP plugin listening @ " + listeningPort);
         }
