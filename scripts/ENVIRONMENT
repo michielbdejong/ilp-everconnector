@@ -1,0 +1,6 @@
+URL_CONNECTOR1=https://localhost:5011
+URL_CONNECTOR2=https://localhost:5012
+CURL="curl --insecure "
+EXPIRE_10SECS="2011-04-15T20:08:18Z"
+PAY1_DST="g.crytpo.xrp.1234"
+PAY1_AMT="100"
