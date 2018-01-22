@@ -14,8 +14,6 @@ import java.util.concurrent.CompletableFuture;
 
 // TODO:(0) Rename generic to Simple? Generic has many interpretations (base class, ...)
 
-// TODO:(0) Add default route
-// TODO:(0) Add list of known fulfillments
 /* TODO:(0) Add handleTransfer (transfer, paymentPacket) with next logic:
  *   handleTransfer (transfer, paymentPacket) {
  *     if (this.knownFulfillments[transfer.executionCondition.toString('hex')]) {
@@ -24,7 +22,6 @@ import java.util.concurrent.CompletableFuture;
  *     return Promise.resolve(this.forwarder.forward(transfer, paymentPacket))
  *   },
  */
-// TODO:(0) Add forwarder entity?
 
 /**
  * generic connector for processing transfer between x ledgers connected to the connector.
