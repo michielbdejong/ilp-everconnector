@@ -7,13 +7,15 @@ participant connector.forwarder as forwarder
 participant "forwared plugin" as pluginOut
 
 note over handler, app
-   app is a (probably remote) app in charge of the
-   business logic of the receiver of payments
-   (webshop, stream service, ...)
-   handler is the local connector handler that
-   bridge received data ("conditions + endToEndData")
-   with the (probably remote) app
-end note
+   - app is a (probably remote) app in charge of the
+     business logic of the receiver of payments
+     (webshop, stream service, ...)
+   - handler is the local connector handler that
+     bridge received data ("conditions + endToEndData")
+     with the (probably remote) app
+
+   - The handler must be custom-developed for each
+     app.
 
 // CONNECTOR BOOT-UP (executed once at connector start-up)
 connector -> connector: read config
@@ -27,10 +29,10 @@ client <-> app: setup quantity/fulfillment/condition
 // PAYMENT PHASE (client invoques closest connector with data)
 client -> pluginIn : data
 pluginIn -> handler: data
-handler -> app: search fulfillment matching condition
+handler -> app: search fulfillment in queue of pending payments matching condition
 alt
 else fulfillment found
-    handler -> handler: remove fulfillment
+    handler -> handler: move fulfillment from pending to paid queue pending to paid queue
 else fulfillment not found
     handler -> connector: data
     connector -> forwarder: data
