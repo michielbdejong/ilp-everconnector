@@ -11,63 +11,46 @@ import org.interledger.ilp.InterledgerPayment;
 // TODO:(0) Remove this class and use standard ILP Packets.
 public class ILPTransfer {
 
-    private static int generator = 0;
-    private final String ILP_TX_UUID;
-
-    private final InterledgerAddress destinationAccount;
-    private final String amount;
-    private final Instant expiresAt;
+    public final String ILP_TX_UUID;
+    public final InterledgerAddress destinationAccount;
+    public final String amount;
+    public final Instant expiresAt;
+    public final Condition condition;
     // TODO:(1) make final?
+    public final byte[] endToEndData;
 
-    private final InterledgerPayment payment;
 
-    private final Condition condition;
-
-        /**
+    /**
+     *
+     * @param ILP_TX_UUID
      * @param destinationAccount
      * @param amount
-     * @param payment ILP packet associated to the transfer. Right now we are not using it. Next step.
+     * @param expiresAt
+     * @param condition
+     * @param endToEndData
      */
-    private ILPTransfer(
+    public ILPTransfer(
             String ILP_TX_UUID,
             InterledgerAddress destinationAccount,
             String amount,
             Instant expiresAt,
-            InterledgerPayment payment,
-            Condition condition) {
+            Condition condition,
+            byte[] endToEndData
+            ) {
 
         this.ILP_TX_UUID = ILP_TX_UUID;
+        if (destinationAccount.isLedgerPrefix()) {
+            throw new RuntimeException("'"+destinationAccount.getValue()+"'" +
+                    " can NOT be a ledger prefix. " +
+                    " It must be a valid destination account");
+        }
         this.destinationAccount = destinationAccount;
 
         this.amount = amount;
         this.expiresAt = expiresAt;
-        this.payment = payment;
+        this.endToEndData = endToEndData;
 
         this.condition = condition;
-    }
-
-    public String getUUID() {
-        return ILP_TX_UUID;
-    }
-
-    public InterledgerAddress getDestinationAccount() {
-        return destinationAccount;
-    }
-
-    public InterledgerPayment getPayment() {
-        return payment;
-    }
-
-    public String getAmount() {
-        return amount;
-    }
-
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
-
-    public Condition getCondition() {
-        return condition;
     }
 
     @Override

@@ -1,14 +1,20 @@
 package org.everis.interledger.connector;
 
+import io.netty.internal.tcnative.Buffer;
 import org.everis.interledger.config.plugin.BasePluginConfig;
 import org.everis.interledger.config.PropertiesConfig;
+import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.InterledgerAddress;
+import org.interledger.InterledgerPacketType;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * List of peers connectors.
@@ -21,8 +27,9 @@ public class ConnectorConfig {
     public final String tls_key_path;
     public final String tls_crt_path;
 
-    public ConnectorConfig(final String configFile, BasePlugin.IRequestHandler requestHandler ){
+    private static final EmptyWebHandler emptyWebHandler = new EmptyWebHandler();
 
+    public ConnectorConfig(final String configFile, BasePlugin.IRequestHandler requestHandler ){
        propConfig = new PropertiesConfig(configFile);
        ilpAddress = InterledgerAddress.of(propConfig.getCleanString("connector.ilpAddress"));
        String peerConfigFiles = propConfig.getCleanString("connector.peersConfigFiles");
@@ -59,6 +66,30 @@ public class ConnectorConfig {
       }
       rtBuilder.setDefaultRoute(InterledgerAddress.of(propConfig.getString("default_route.prefix")));
       this.initialRoutingTable = rtBuilder.build();
-
    }
+
+   private static class EmptyWebHandler implements BasePlugin.IRequestHandler {
+       final CompletableFuture<ILPResponse> emptyResult;
+
+       EmptyWebHandler() {
+           emptyResult = new CompletableFuture<ILPResponse>();
+           emptyResult.complete(new ILPResponse(
+               InterledgerPacketType.ILP_PAYMENT_TYPE,
+               Optional.empty(),
+               Optional.empty())/* NOTE: Empty fulfillment forces forward to next hop */ );
+       }
+
+       @Override
+       public CompletableFuture<ILPResponse> onRequestReceived(
+               ILPTransfer ilpTransfer) {
+           return emptyResult;
+       }
+   }
+
+   public static EmptyWebHandler getEmptyHandler() {
+        return emptyWebHandler;
+   }
+
+
+
 }

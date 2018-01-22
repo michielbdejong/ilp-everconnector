@@ -49,6 +49,7 @@ import io.vertx.core.net.TrustOptions;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import org.everis.interledger.config.plugin.ILPOverHTTPConfig;
+import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.interledger.InterledgerAddress;
 
 import java.io.File;
@@ -58,10 +59,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -73,6 +71,9 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import org.interledger.InterledgerPacketType;
 import org.interledger.InterledgerProtocolException;
+import org.interledger.cryptoconditions.PreimageSha256Condition;
+import org.interledger.cryptoconditions.PreimageSha256Fulfillment;
+import org.interledger.ilp.InterledgerPayment;
 import org.interledger.ilp.InterledgerProtocolError;
 
 
@@ -180,17 +181,22 @@ public class ILPOverHTTPPlugin extends BasePlugin {
 
             server.requestHandler(req -> {
                 final HttpServerResponse response = req.response();
+
                 try {
                     MultiMap headers = req.headers();
-                    InterledgerAddress destination = InterledgerAddress.of(headers.get("ilp-destination"));
-                    String Base64ExecCondition = headers.get("ilp-condition");
-                    Instant expiresAt = Instant.from(ZonedDateTime.parse(headers.get("ilp-expiry")));
-                    String amount = headers.get("ilp-amount");
-                    ByteBuffer endToEndData = null /* TODO:(0) Add body as endToEndData*/;
+                    byte[] endToEndData = null /* TODO:(0) Add body as endToEndData*/;
+
+                    ILPTransfer ilpTransfer = new ILPTransfer(
+                        /*String*/ "TODO:(0) ILP_TX_UUID",
+                        InterledgerAddress.of(headers.get("ilp-destination")),
+                        headers.get("ilp-amount"),
+                        Instant.from(ZonedDateTime.parse(headers.get("ilp-expiry"))),
+                        new PreimageSha256Condition(1 /*cost*/ /*cost*/, Base64.getEncoder().encode(headers.get("ilp-condition").getBytes())),
+                        endToEndData
+                    );
                     CompletableFuture<IRequestHandler.ILPResponse> ilpResponseFuture =
-                            this.requestHandler.onRequestReceived(
-                                    destination, Base64ExecCondition, expiresAt, amount, endToEndData);
-                    final MultiMap res_headers = response.headers();
+                            parentConnector.handleRequestOrForward(
+                                this.requestHandler, ilpTransfer);
                     String sResponse = "";
                     boolean retry;
                     do {
@@ -265,7 +271,6 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                 this.pluginConfig.remote_host,
                 this.pluginConfig.remote_port
             );
-        // TODO:(0.5) use thread pool from executor. Not new thread
 
         MessagePassingQueue.Consumer<Vertx> runner = vertx -> {
             try {
@@ -295,26 +300,16 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         return this.status == Status.CONNECTED;
     }
 
-
     /**
      * first step of the ILP flow to prepare a transfer by transferring the funds on the hold account and put
      * the transfer status as "PREPARED".
      *
-     * @param ILPConditionBase64Encoded,
-     * @param destinantion,
-     * @param endToEndData
+     * @param ilpTransfer
+     * @return
      */
     @Override
     public CompletableFuture<DataResponse> sendData(
-            String ILPConditionBase64Encoded,
-            InterledgerAddress destinantion,
-            String ammount,
-            /* TODO:(0.5) Drop ilpExpiry for ILPv4.
-             *    Is not part of the expect anymore.
-             *    Can be pased in the endToEndData if needed (recheck RFC)
-             */
-            Instant ilpExpiry,
-            Optional<ByteBuffer> endToEndData
+            ILPTransfer ilpTransfer
     ){
         if (!isConnected()) {
             throw new RuntimeException("plugin not connected.");
@@ -335,15 +330,15 @@ public class ILPOverHTTPPlugin extends BasePlugin {
 
         // POST TO THE SERVER
         io.vertx.core.buffer.Buffer buffer =  io.vertx.core.buffer.Buffer.buffer();
-        if (endToEndData.isPresent()) buffer.setBytes(0,endToEndData.get());
+        if (ilpTransfer.endToEndData.length>0) buffer.setBytes(0,ilpTransfer.endToEndData);
         HttpRequest<io.vertx.core.buffer.Buffer> request1 = client
             .post(this.pluginConfig.remote_port, this.pluginConfig.remote_host, "");
         request1
             .timeout(5000)
-            .putHeader("ILP-Condition"   , ILPConditionBase64Encoded)
-            .putHeader("ILP-Expiry"      , ilpExpiry.toString())
-            .putHeader("ILP-Destination" , destinantion.getValue())
-            .putHeader("ILP-Amount"      , ammount)
+            .putHeader("ILP-Condition"   , ilpTransfer.condition.getFingerprintBase64Url())
+            .putHeader("ILP-Expiry"      , ilpTransfer.expiresAt.toString())
+            .putHeader("ILP-Destination" , ilpTransfer.destinationAccount.getValue())
+            .putHeader("ILP-Amount"      , ilpTransfer.amount)
             .sendBuffer(buffer, /*handle response */ ar -> {
             // C&P from VertX tutorial:
             //     WARNING: responses are fully buffered,
@@ -358,11 +353,11 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                 final HttpResponse<io.vertx.core.buffer.Buffer> response = ar.result();
                 if (response.statusCode() == 200) {
                     final DataResponse delayedResult = new DataResponse(
-                        response.getHeader("ilp-fulfillment"),
+                        new PreimageSha256Fulfillment(Base64.getEncoder().
+                            encode(response.getHeader("ilp-fulfillment").getBytes())),
                         response.bodyAsString().getBytes());
                     result.complete(delayedResult);
                 } else {
-                    //                  return IlpPacket.serializeIlpReject({
                     final String sCode = response.getHeader("ilp-error-code");
                     final String sName = response.getHeader("ilp-error-name");
                     final String sTriggeredBy = response.getHeader("ilp-error-triggered-by");

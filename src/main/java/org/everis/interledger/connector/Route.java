@@ -12,7 +12,7 @@ import java.util.List;
 public class Route {
 
     public final InterledgerAddress addressPrefix;
-    private final BasePlugin plugin;
+    public final BasePlugin plugin;
     private final List<LiquidityPoint> liquidityCurve;
     // TODO:(0.5) Remove hard-coded percentage and use liquidityCurve instead
     private final BigDecimal percentageApplied = new BigDecimal("105");

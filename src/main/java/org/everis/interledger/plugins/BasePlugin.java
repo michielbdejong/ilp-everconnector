@@ -2,9 +2,11 @@ package org.everis.interledger.plugins;
 
 import org.everis.interledger.config.plugin.BasePluginConfig;
 import org.everis.interledger.connector.GenericConnector;
+import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.interledger.InterledgerAddress;
 import org.interledger.InterledgerPacketType;
 import org.interledger.InterledgerProtocolException;
+import org.interledger.cryptoconditions.Fulfillment;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -80,12 +82,7 @@ public abstract class BasePlugin {
         }
 
     	CompletableFuture<ILPResponse> onRequestReceived(
-    	        InterledgerAddress destination,
-                String Base64ExecCondition,
-                Instant expiresAt,
-                String amount,
-                Buffer endToEndData
-                );
+    	        ILPTransfer ilpTransfer );
 	}
 
     protected enum Status { CONNECTED, DISCONNECTED; }
@@ -114,11 +111,11 @@ public abstract class BasePlugin {
 
 
     public static class DataResponse {
-        final String base64fulfillment;
+        final Fulfillment base64fulfillment;
         final byte[] endToEndData;
 
-        DataResponse(String base64fulfillment, byte[] endToEndData) {
-             this.base64fulfillment = base64fulfillment;
+        public DataResponse(Fulfillment ff, byte[] endToEndData) {
+             this.base64fulfillment = ff;
              this.endToEndData = endToEndData;
         }
     }
@@ -136,13 +133,7 @@ public abstract class BasePlugin {
     // < ILP-Fulfillment: cz/9RGv1PVjhKIOoyPvWkAs8KrBpIJh8UrYsQ8j34CQ=<
     // <
     // < body
-    public abstract CompletableFuture<DataResponse> sendData(
-            String ILPConditionBase64Encoded,
-            InterledgerAddress destinantion,
-            String ammount,
-            Instant ilpExpiry /* TODO:(0.5) Drop?*/,
-            Optional<ByteBuffer> endToEndData
-    );
+    public abstract CompletableFuture<DataResponse> sendData(ILPTransfer ilpTransfer);
 
     public abstract CompletableFuture<Void>   sendMoney(String amount);
 

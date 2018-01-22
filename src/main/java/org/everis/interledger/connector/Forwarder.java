@@ -1,6 +1,7 @@
 package org.everis.interledger.connector;
 
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
+import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.InterledgerProtocolException;
 import org.interledger.cryptoconditions.Fulfillment;
 import org.interledger.ilp.InterledgerProtocolError;
@@ -43,11 +44,11 @@ public class Forwarder {
     110     }
     111   },
      */
-    public CompletableFuture<Fulfillment> forwardPayment(ILPTransfer transfer, Object paymentPacket) {
+    public CompletableFuture<BasePlugin.DataResponse> forwardPayment(ILPTransfer ilpTransfer) {
         // final Object payment = IlpPacket.deserializeIlpPayment(paymentPacket)
         CompletableFuture<Fulfillment> result = new CompletableFuture<Fulfillment>();
 
-        if (transfer.getExpiresAt().isAfter(Instant.now().plus(FORWARD_TIMEOUT))) {
+        if (ilpTransfer.expiresAt.isAfter(Instant.now().plus(FORWARD_TIMEOUT))) {
             // return Promise.reject(ERROR_LACK_TIME)
             final InterledgerProtocolError ilpError = InterledgerProtocolError.builder()
                 .errorCode(InterledgerProtocolError.ErrorCode.R00_TRANSFER_TIMED_OUT)
@@ -56,10 +57,10 @@ public class Forwarder {
                 .build();
                 result.completeExceptionally(new InterledgerProtocolException(ilpError));
         }
-        Route route = routeTable.findRouteByAddress(transfer.getDestinationAccount());
+        Route route = routeTable.findRouteByAddress(ilpTransfer.destinationAccount);
+        // TODO:(0) Apply toll (money kept by our connector).
+        return route.plugin.sendData(ilpTransfer);
 
-        // TODO:(0) Implement
-/////   const { onwardAmount, onwardPeer } = this.quoter.findHop(payment.account, parseInt(payment.amount));
 /////   // console.log('quote', onwardAmount, onwardPeer)
 /////   if (!onwardPeer || !this.peers[onwardPeer]) {
 /////     return Promise.reject(ERROR_NO_ROUTE)
@@ -80,7 +81,6 @@ public class Forwarder {
 /////     console.error('interledgerPayment err', err)
 /////     throw err
 /////   })
-        return result;
     }
 
 ////forwardRoute (route) {

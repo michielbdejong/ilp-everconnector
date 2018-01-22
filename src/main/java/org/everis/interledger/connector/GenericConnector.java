@@ -4,13 +4,19 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
+import org.interledger.InterledgerAddress;
 import org.interledger.cryptoconditions.Condition;
 import org.interledger.cryptoconditions.Fulfillment;
 
+import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 // TODO:(0) Rename generic to Simple? Generic has many interpretations (base class, ...)
 
@@ -33,6 +39,7 @@ public class GenericConnector {
     private final Map<Condition, Fulfillment> knownFulfillments = new HashMap<Condition, Fulfillment>();
     // vertx: Framework used for async handling
     public final Vertx vertx;
+    ExecutorService executor = Executors.newFixedThreadPool(8 /* TODO:(1) Arbitrary max. numbers of parallel trheads*/);
 
     private GenericConnector(ConnectorConfig config) {
         this.config = config;
@@ -42,13 +49,17 @@ public class GenericConnector {
         this.vertx = Vertx.vertx(options);
     }
 
-    private CompletableFuture<Fulfillment> handleTransfer(ILPTransfer transfer) {
-        CompletableFuture<Fulfillment> result = new CompletableFuture<Fulfillment>();
-        Fulfillment ff = this.knownFulfillments.get(transfer.getCondition());
-        if (this.knownFulfillments.get(transfer.getCondition()) != null) {
-            result.complete(ff);
+    private CompletableFuture<BasePlugin.DataResponse> handleTransfer(ILPTransfer ilpTransfer) {
+        Fulfillment ff = this.knownFulfillments.get(ilpTransfer.condition);
+        final CompletableFuture<BasePlugin.DataResponse> result;
+        if (ff != null) {
+            /* TODO:(RFC) Arbitrarelly incomming endToEndData from input puglin is returned.
+             *            Must it be empty?
+             */
+            result = new CompletableFuture<BasePlugin.DataResponse>();
+            result.complete(new BasePlugin.DataResponse(ff, ilpTransfer.endToEndData));
         } else {
-            return forwarder.forwardPayment(transfer, new Object() /*TODO:(0) paymentPacket*/);
+            result = forwarder.forwardPayment(ilpTransfer);
         }
         return result;
     }
@@ -124,5 +135,47 @@ public class GenericConnector {
 
     public List<BasePlugin> getRegisteredPlugins() {
         return plugin_list;
+    }
+
+
+    /*
+     * TODO:(0) There is a redundancy. First, plugins are registered attached to a handler, then the plugin
+     * invoques this handler (than most probably will always be the same for the same connector) so directly
+     * attaching the handler to the connector can make more sense unless for some reason the connector could
+     * have different handlers for different plugins.
+     */
+
+    /**
+     *
+     * @param registeredHandler
+     * @param ilpTransfer
+     * @return
+     */
+    public CompletableFuture<BasePlugin.IRequestHandler.ILPResponse> handleRequestOrForward(
+            BasePlugin.IRequestHandler registeredHandler,
+            ILPTransfer ilpTransfer)
+        {
+
+        CompletableFuture<BasePlugin.IRequestHandler.ILPResponse> result =
+                new CompletableFuture<BasePlugin.IRequestHandler.ILPResponse> ();
+
+        executor.submit(() -> {
+            BasePlugin.IRequestHandler.ILPResponse response = null;
+            try {
+                response = registeredHandler.onRequestReceived(ilpTransfer).get();
+            } catch (InterruptedException e) {
+                // TODO:(0) Retry
+            } catch (ExecutionException e) {
+                // TODO:(0) propagate exception
+                forwarder.forwardPayment(ilpTransfer);
+            }
+            if (response.optBase64Fulfillment.isPresent()) {
+                result.complete(response);
+            } else {
+                // TODO:(0) Forward to next opt
+            }
+
+        });
+        return result;
     }
 }
