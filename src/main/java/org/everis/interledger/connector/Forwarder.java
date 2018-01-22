@@ -45,6 +45,7 @@ public class Forwarder {
     111   },
      */
     public CompletableFuture<BasePlugin.DataResponse> forwardPayment(ILPTransfer ilpTransfer) {
+        // CHECK 1: Check timeouts
         if (ilpTransfer.expiresAt.isAfter(Instant.now().plus(FORWARD_TIMEOUT))) {
             CompletableFuture<BasePlugin.DataResponse> result = new CompletableFuture<>();
             // return Promise.reject(ERROR_LACK_TIME)
@@ -55,18 +56,26 @@ public class Forwarder {
                 .build();
                 result.completeExceptionally(new InterledgerProtocolException(ilpError));
                 return result;
-        } else {
-            Route route = routeTable.findRouteByAddress(ilpTransfer.destinationAccount);
-            ILPTransfer newILPTransfer = new ILPTransfer(
-            "",
-            ilpTransfer.destinationAccount,
-            ilpTransfer.amount /* TODO:(0) apply currency conversion and commision */,
-            ilpTransfer.expiresAt.minus(MIN_MESSAGE_WINDOW) /* decrease timeout */,
-            ilpTransfer.condition,
-            ilpTransfer.endToEndData );
-            // TODO:(0) Apply toll (money kept by our connector).
-            return route.plugin.sendData(newILPTransfer);
         }
-        // TODO:(0) Check that (onwardAmount > transfer.amount)  or cancel
+
+        Route route = routeTable.findRouteByAddress(ilpTransfer.destinationAccount);
+        /* TODO:(0):FIXME: onwardAmount: apply input/output currency conversion and connector comission/toll
+         *  Use info in Route instance (liquidity curve, minimumAllowedAmmount, ...) to calculate it.
+         *  NOTE: input amount will never be equal to onwardAmount unless currency is the same and toll is ZERO
+         *  */
+        final String onwardAmount = ilpTransfer.amount;
+
+        // TODO:(0): CHECK 2:  Check that (onwardAmount > transfer.amount) or cancel
+
+        // Forward payment with new amount
+        ILPTransfer newILPTransfer = new ILPTransfer(
+        "",
+        ilpTransfer.destinationAccount,
+        onwardAmount,
+        ilpTransfer.expiresAt.minus(MIN_MESSAGE_WINDOW) /* decrease timeout */,
+        ilpTransfer.condition,
+        ilpTransfer.endToEndData );
+        System.out.println("forwarding "+newILPTransfer.amount + "to "+ newILPTransfer.destinationAccount + " through "+route.plugin.getConfigFile());
+        return route.plugin.sendData(newILPTransfer);
     }
 }

@@ -24,6 +24,7 @@ public abstract class BasePluginConfig {
     public final CurrencyUnit currency;
     public final InterledgerAddress ledgerPrefix; // TODO:(0) when we receive getInfo() compare and raise exception if do not match
     public final LiquidityCurve liquidityCurve;
+    public final String configFile;
 
     public final int    secsReconnect;
 
@@ -35,6 +36,7 @@ public abstract class BasePluginConfig {
         secsReconnect    = propConfig.getInteger("plugin.secsReconnect");
         ledgerPrefix     = InterledgerAddress.of(propConfig.getString("plugin.ledgerPrefix") );
         String liquidityPoints = propConfig.getString("plugin.liquidity_points");
+        this.configFile  =  propConfig.CONFIG_FILE;
 
         List<LiquidityPoint> points = Arrays.stream(liquidityPoints.split(";"))
             .collect(Collectors.toList()).stream()

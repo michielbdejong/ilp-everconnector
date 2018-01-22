@@ -185,14 +185,17 @@ public class ILPOverHTTPPlugin extends BasePlugin {
 
                 try {
                     MultiMap headers = req.headers();
-                    byte[] endToEndData = null /* TODO:(0) Add body as endToEndData*/;
-
+                    final byte[] endToEndData = null /* TODO:(0) Add body as endToEndData*/;
+System.out.println("deleteme ilp-condition:"+ headers.get("ilp-condition"));
+                    final byte[] conditionFingerprint =
+                            Base64.getUrlDecoder().decode(headers.get("ilp-condition"));
+System.out.println("deleteme conditionFingerprint.length:"+conditionFingerprint.length);
                     ILPTransfer ilpTransfer = new ILPTransfer(
                         /*String*/ "TODO:(0) ILP_TX_UUID",
                         InterledgerAddress.of(headers.get("ilp-destination")),
                         headers.get("ilp-amount"),
                         Instant.from(ZonedDateTime.parse(headers.get("ilp-expiry"))),
-                        new PreimageSha256Condition(1 /*cost*/ /*cost*/, Base64.getEncoder().encode(headers.get("ilp-condition").getBytes())),
+                        new PreimageSha256Condition(1 /*cost*/ /*cost*/, conditionFingerprint),
                         endToEndData
                     );
                     CompletableFuture<IRequestHandler.ILPResponse> ilpResponseFuture =
@@ -354,8 +357,8 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                 final HttpResponse<io.vertx.core.buffer.Buffer> response = ar.result();
                 if (response.statusCode() == 200) {
                     final DataResponse delayedResult = new DataResponse(
-                        new PreimageSha256Fulfillment(Base64.getEncoder().
-                            encode(response.getHeader("ilp-fulfillment").getBytes())),
+                            // Base64.getUrlDecoder().decode(headers.get("ilp-condition"));
+                        new PreimageSha256Fulfillment(Base64.getUrlDecoder().decode(response.getHeader("ilp-fulfillment"))) ,
                         response.bodyAsString().getBytes());
                     result.complete(delayedResult);
                 } else {

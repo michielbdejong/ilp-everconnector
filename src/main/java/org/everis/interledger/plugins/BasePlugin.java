@@ -140,4 +140,10 @@ public abstract class BasePlugin {
     public void setParentConnector(GenericConnector parentConnector) {
         this.parentConnector = parentConnector;
     }
+
+
+    public String getConfigFile() {
+        return basePluginConfig.configFile;
+    }
+
 }

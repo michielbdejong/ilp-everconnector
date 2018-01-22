@@ -15,7 +15,6 @@ import org.interledger.ilp.InterledgerProtocolError;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.TemporalUnit;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -81,6 +80,8 @@ public class MockWebShop {
             pendingCC2FFQueue.put(new PreimageSha256Fulfillment(preimage.getBytes()).getCondition(), preimage);
         }
         for (Condition key : pendingCC2FFQueue.keySet()){
+
+            // Base64.getUrlEncoder().withoutPadding().encode(headers.get("ilp-condition").getBytes());
             System.out.println("preimage (fulfillment):"+pendingCC2FFQueue.get(key) +" -> condition: "+key.getFingerprintBase64Url());
         }
     }

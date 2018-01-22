@@ -15,7 +15,7 @@ import java.util.Properties;
  */
 public class PropertiesConfig {
     private final Properties EFFECTIVE_PROPS;
-    private final String CONFIG_FILE;
+    public final String CONFIG_FILE;
 
     public PropertiesConfig(String CONFIG_FILE){
 

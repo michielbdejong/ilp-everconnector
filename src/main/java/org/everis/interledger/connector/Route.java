@@ -13,11 +13,11 @@ public class Route {
 
     public final InterledgerAddress addressPrefix;
     public final BasePlugin plugin;
-    private final List<LiquidityPoint> liquidityCurve;
+    public final List<LiquidityPoint> liquidityCurve;
     // TODO:(0.5) Remove hard-coded percentage and use liquidityCurve instead
-    private final BigDecimal percentageApplied = new BigDecimal("105");
-    private final BigInteger minimumAllowedAmmount;
-    private final BigInteger maximumAllowedAmmount;
+    public final BigDecimal percentageApplied = new BigDecimal("105");
+    public final BigInteger minimumAllowedAmmount;
+    public final BigInteger maximumAllowedAmmount;
 
     Route (final InterledgerAddress addressPrefix, final BasePlugin plugin, final LiquidityCurve liquidityCurve){
         if (! addressPrefix.getValue().endsWith(".")) {

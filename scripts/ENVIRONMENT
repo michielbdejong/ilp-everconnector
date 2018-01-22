@@ -7,8 +7,9 @@ function header() {
 
 URL_CONNECTOR1=https://localhost:5011
 URL_CONNECTOR2=https://localhost:5012
-CONDOK="payed"
-CONDKO="non_payed"
+CONDOK="-9SmS6h6MrXZLNefmxQZPSA5Mp_LGWbnHqWCj6UDMAk"
+CONDKO="WRONG_CONDITION"
+COND_NOT_EXISTANT="-9SmS6h6MrXZLNefmxQZPSA5Mp_LGWbnHqWCj000000"
 
 EXPIRE_10SECS=`date +"%Y-%m-%dT%H:%M:%SZ" --date="+ 10 seconds"`
 PAY1_DST="g.crytpo.xrp.1234"
