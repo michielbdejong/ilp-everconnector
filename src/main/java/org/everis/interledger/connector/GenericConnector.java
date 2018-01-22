@@ -1,9 +1,11 @@
 package org.everis.interledger.connector;
 
+import org.everis.interledger.config.ExecutorConfigSupport;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.cryptoconditions.Condition;
 import org.interledger.cryptoconditions.Fulfillment;
+import org.interledger.ilp.InterledgerProtocolError;
 
 
 import java.util.HashMap;
@@ -35,7 +37,6 @@ public class GenericConnector {
     private final List<BasePlugin> plugin_list;
     private final Forwarder forwarder;
     private final Map<Condition, Fulfillment> knownFulfillments = new HashMap<Condition, Fulfillment>();
-    ExecutorService executor = Executors.newFixedThreadPool(8 /* TODO:(1) Arbitrary max. numbers of parallel trheads*/);
 
     private GenericConnector(ConnectorConfig config) {
         this.config = config;
@@ -150,7 +151,7 @@ public class GenericConnector {
             ILPTransfer ilpTransfer) {
         CompletableFuture<BasePlugin.IRequestHandler.ILPResponse> result = new CompletableFuture<> ();
 
-        executor.submit(() -> {
+        ExecutorConfigSupport.executor.submit(() -> {
             if(registeredHandler.isPresent()) {
                 try {
                     final BasePlugin.IRequestHandler.ILPResponse response =
@@ -158,6 +159,10 @@ public class GenericConnector {
                     if (response.optBase64Fulfillment.isPresent()) {
                         result.complete(response);
                         return; // Avoid forwarding.
+                    } else if (response.optILPException.isPresent()) {
+                        // TODO:(0) return error. The handler must be configurable
+                    } else {
+                        assert (response.packetType == 1 /* continue processing flow */);
                     }
                 } catch (InterruptedException e) {
                     // TODO:(0) Retry

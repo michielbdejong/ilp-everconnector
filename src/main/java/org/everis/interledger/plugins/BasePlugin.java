@@ -68,10 +68,11 @@ public abstract class BasePlugin {
                 if (packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR &&
                     ! optILPException.isPresent()) {
                     throw new RuntimeException("packetType equals ILP error but optILPException is not present");
-                }
-                if (packetType == InterledgerPacketType.ILP_PAYMENT_TYPE &&
+                } else if (packetType == InterledgerPacketType.ILP_PAYMENT_TYPE &&
                     !optBase64Fulfillment.isPresent() ) {
                     throw new RuntimeException("packetType equals ILP_PAYMENT_TYPE but optBase64Fulfillment is not present");
+                } else if (packetType == -1) {
+                    // Nothing todo. -1 => Continue processing (forward to next connector or handler) {
                 }
                 this.packetType = packetType;
                 this.optILPException = optILPException;

@@ -48,6 +48,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.net.TrustOptions;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
+import org.everis.interledger.config.ExecutorConfigSupport;
 import org.everis.interledger.config.VertXConfigSupport;
 import org.everis.interledger.config.plugin.ILPOverHTTPConfig;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
@@ -199,28 +200,31 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                     CompletableFuture<IRequestHandler.ILPResponse> ilpResponseFuture =
                             parentConnector.handleRequestOrForward(
                                 this.requestHandler, ilpTransfer);
-                    String sResponse = "";
-                    boolean retry;
-                    do {
-                        retry = false;
-                        try {
-                            // TODO:(0.5) Blocking call!! exec in thread pool
-                            IRequestHandler.ILPResponse ilpResponse = null;
-                            ilpResponse = ilpResponseFuture.get();
-                            if (ilpResponse.packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR) {
-System.out.println("deleteme: ilpResponse.optILPException.isPresent():"+ilpResponse.optILPException.isPresent()) ;
-                                throw ilpResponse.optILPException.get();
-                            } else {
-                                // TODO:(0) Write recieved endToEndData in sResponse (HTTP body)
-                                response.putHeader("ILP-Fulfillment", ilpResponse.optBase64Fulfillment.get());
-                                response.setStatusCode(200);
+
+                    ExecutorConfigSupport.executor.submit(() -> {
+                        boolean retry;
+                        do {
+                            retry = false;
+                            try {
+                                String sResponse = "";
+                                final IRequestHandler.ILPResponse ilpResponse = ilpResponseFuture.get();
+                                if (ilpResponse.packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR) {
+                                    throw ilpResponse.optILPException.get();
+                                } else {
+                                    // TODO:(0) Write recieved endToEndData in sResponse (HTTP body)
+                                    response.putHeader("ILP-Fulfillment", ilpResponse.optBase64Fulfillment.get());
+                                    response.setStatusCode(200);
+                                }
+                                response.end(sResponse);
+                            } catch (InterruptedException e) {
+                                // TODO:(1) Log interrupted exception
+                                retry = true; // Retry
+                            } catch (Throwable e) {
+                                __respondWithError(response, e.getCause()!=null ? e.getCause() : e);
                             }
-                        } catch (InterruptedException e) {
-                            // TODO:(0.5) Log interrupted exception
-                            retry = true; // Retry
-                        }
-                    } while (retry);
-                    response.end(sResponse);
+                        } while (retry);
+
+                        });
                 }catch (Throwable e) {
                     __respondWithError(response, e.getCause()!=null ? e.getCause() : e);
                 }
@@ -311,16 +315,13 @@ System.out.println("deleteme: ilpResponse.optILPException.isPresent():"+ilpRespo
      * @return
      */
     @Override
-    public CompletableFuture<DataResponse> sendData(
-            ILPTransfer ilpTransfer
-    ){
+    public CompletableFuture<DataResponse> sendData(ILPTransfer ilpTransfer){
         // if (!isConnected()) {
         //     throw new RuntimeException("plugin not connected.");
         // }
         CompletableFuture<DataResponse> result = new CompletableFuture<DataResponse>();
 
-        // CREATING A WEB CLIENT
-
+        // CREATING A WEB CLIENT: REF: http://vertx.io/docs/vertx-web-client/java/
         WebClientOptions options = new WebClientOptions()
                 .setUserAgent("My-App/1.2.3")
                 .setFollowRedirects(false)
@@ -328,14 +329,18 @@ System.out.println("deleteme: ilpResponse.optILPException.isPresent():"+ilpRespo
                 .setTrustAll(
                     pluginConfig.ignoreTLSCerts
                     /* TODO:(?) check also if old problem persists: https://github.com/eclipse/vert.x/issues/1398 */);
-        options.setKeepAlive(false);
+        options.setKeepAlive(true);
         WebClient client = WebClient.create(VertXConfigSupport.getVertx(), options);
-
+System.out.println("deleteme sendData 1");
         // POST TO THE SERVER
         io.vertx.core.buffer.Buffer buffer =  io.vertx.core.buffer.Buffer.buffer();
-        if (ilpTransfer.endToEndData.length>0) buffer.setBytes(0,ilpTransfer.endToEndData);
+System.out.println("deleteme sendData 2");
+        // if (ilpTransfer.endToEndData.length>0) buffer.setBytes(0,ilpTransfer.endToEndData);
+System.out.println("deleteme sendData 3");
         HttpRequest<io.vertx.core.buffer.Buffer> request1 = client
-            .post(this.pluginConfig.remote_port, this.pluginConfig.remote_host, "");
+            .post(this.pluginConfig.remote_port, this.pluginConfig.remote_host, "/")
+        ;
+System.out.println("deleteme sendData 4");
         request1
             .timeout(5000)
             .putHeader("ILP-Condition"   , ilpTransfer.condition.getFingerprintBase64Url())
@@ -352,37 +357,42 @@ System.out.println("deleteme: ilpResponse.optILPException.isPresent():"+ilpRespo
             //       Ex. To decode as JSON:
             //         HttpResponse<JsonObject> response = ar.result();
             //         JsonObject body = response.body();
-            if (ar.succeeded()) {
-                final HttpResponse<io.vertx.core.buffer.Buffer> response = ar.result();
-                if (response.statusCode() == 200) {
-                    final DataResponse delayedResult = new DataResponse(
-                            // Base64.getUrlDecoder().decode(headers.get("ilp-condition"));
-                        new PreimageSha256Fulfillment(Base64.getUrlDecoder().decode(response.getHeader("ilp-fulfillment"))) ,
-                        response.bodyAsString().getBytes());
-                    result.complete(delayedResult);
-                } else {
-                    final String sCode = response.getHeader("ilp-error-code");
-                    final String sName = response.getHeader("ilp-error-name");
-                    final String sTriggeredBy = response.getHeader("ilp-error-triggered-by");
-                    final List<InterledgerAddress> forwaredByList =
-                            Arrays.stream(response.getHeader("ilp-error-forwarded-by").split(","))
-                                    .map(s -> InterledgerAddress.of(s))
-                                    .collect(Collectors.toList());
-
-                    Instant triggeredAt = Instant.from(ZonedDateTime.parse(response.getHeader("ilp-error-triggered-at")));
-                    String message = response.getHeader("ilp-error-message");
-
-                   final InterledgerProtocolError ilpError = InterledgerProtocolError.builder()
-                       .errorCode(InterledgerProtocolError.ErrorCode.of(sCode, sName))
-                       .triggeredByAddress(InterledgerAddress.of(sTriggeredBy))
-                       .forwardedByAddresses(forwaredByList)
-                       .triggeredAt(Instant.now())
-                       // .data()
-                       .build();
-                   result.completeExceptionally(new InterledgerProtocolException(ilpError));
-                }
+            if (!ar.succeeded()) {
+                System.out.println("request failed due to \n"+ar.cause().toString()+"\n"+ar.cause().getMessage());
+                // TODO:(0)
+                return;
             }
-          });
+            final HttpResponse<io.vertx.core.buffer.Buffer> response = ar.result();
+            if (response.statusCode() == 200) {
+                final DataResponse delayedResult = new DataResponse(
+                        // Base64.getUrlDecoder().decode(headers.get("ilp-condition"));
+                    new PreimageSha256Fulfillment(Base64.getUrlDecoder().decode(response.getHeader("ilp-fulfillment"))) ,
+                    response.bodyAsString().getBytes());
+                result.complete(delayedResult);
+            } else {
+                final String sCode = response.getHeader("ilp-error-code");
+                final String sName = response.getHeader("ilp-error-name");
+                final String sTriggeredBy = response.getHeader("ilp-error-triggered-by");
+                final List<InterledgerAddress> forwaredByList =
+                        Arrays.stream(response.getHeader("ilp-error-forwarded-by").split(","))
+                                .map(s -> InterledgerAddress.of(s))
+                                .collect(Collectors.toList());
+
+                Instant triggeredAt = Instant.from(ZonedDateTime.parse(response.getHeader("ilp-error-triggered-at")));
+                String message = response.getHeader("ilp-error-message");
+
+               final InterledgerProtocolError ilpError = InterledgerProtocolError.builder()
+                   .errorCode(InterledgerProtocolError.ErrorCode.of(sCode, sName))
+                   .triggeredByAddress(InterledgerAddress.of(sTriggeredBy))
+                   .forwardedByAddresses(forwaredByList)
+                   .triggeredAt(Instant.now())
+                   // .data()
+                   .build();
+               result.completeExceptionally(new InterledgerProtocolException(ilpError));
+            }
+         });
+
+System.out.println("deleteme sendData 3");
         return result;
     }
 
