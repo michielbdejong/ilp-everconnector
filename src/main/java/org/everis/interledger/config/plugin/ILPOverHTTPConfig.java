@@ -15,18 +15,17 @@ public class ILPOverHTTPConfig extends BasePluginConfig {
         public final String secret; // TODO:(0) Check if secret is really used in ILP-over-HTTP
         public final BigInteger maxIOYAmmount; // "I Owe You"  max account
         public final BigInteger maxYOMAmmount; // "You Owe me" max account
+        public final boolean ignoreTLSCerts;
 
         ILPOverHTTPConfig(PropertiesConfig propConfig){
             super( ILPOverHTTPPlugin.class, propConfig );
-            secret        = propConfig.getCleanString("plugin.peer_plugin.secret");
-
+            secret         = propConfig.getCleanString("plugin.peer_plugin.secret");
             listening_host = propConfig.getCleanString("plugin.peer_plugin.listening_host");
             listening_port = propConfig.getInteger("plugin.peer_plugin.listening_port");
             remote_host    = propConfig.getCleanString("plugin.peer_plugin.remote_host");
             remote_port    = propConfig.getInteger("plugin.peer_plugin.remote_port");
-
-
-            maxIOYAmmount = new BigInteger(""+propConfig.getCleanString("plugin.trustLine.maxIOYAmount"));
-            maxYOMAmmount = new BigInteger(""+propConfig.getCleanString("plugin.trustLine.maxYOMAmount"));
+            ignoreTLSCerts = propConfig.getBoolean("plugin.peer_plugin.ignoreRemoteTLSCertificates");
+            maxIOYAmmount  = new BigInteger(""+propConfig.getCleanString("plugin.trustLine.maxIOYAmount"));
+            maxYOMAmmount  = new BigInteger(""+propConfig.getCleanString("plugin.trustLine.maxYOMAmount"));
         }
     }

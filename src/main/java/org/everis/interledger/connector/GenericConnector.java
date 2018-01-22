@@ -65,7 +65,6 @@ public class GenericConnector {
     }
 
     public CompletableFuture<Void> run(){
-        // TODO:(1) Do a "get head" or HTTP 2.0 connection
 
         CompletableFuture<Void>[] connect_list = new CompletableFuture[plugin_list.size()];
         int idx=0;

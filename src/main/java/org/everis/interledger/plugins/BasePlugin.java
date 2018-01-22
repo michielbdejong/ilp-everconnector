@@ -139,6 +139,7 @@ public abstract class BasePlugin {
     public abstract CompletableFuture<DataResponse> sendData(
             String ILPConditionBase64Encoded,
             InterledgerAddress destinantion,
+            String ammount,
             Instant ilpExpiry /* TODO:(0.5) Drop?*/,
             Optional<ByteBuffer> endToEndData
     );

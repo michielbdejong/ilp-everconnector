@@ -45,6 +45,7 @@ package org.everis.interledger.plugins;
 import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.net.TrustOptions;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import org.everis.interledger.config.plugin.ILPOverHTTPConfig;
@@ -185,7 +186,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                     String Base64ExecCondition = headers.get("ilp-condition");
                     Instant expiresAt = Instant.from(ZonedDateTime.parse(headers.get("ilp-expiry")));
                     String amount = headers.get("ilp-amount");
-                    ByteBuffer endToEndData = null /* TODO:(0.5) Add body as endToEndData*/;
+                    ByteBuffer endToEndData = null /* TODO:(0) Add body as endToEndData*/;
                     CompletableFuture<IRequestHandler.ILPResponse> ilpResponseFuture =
                             this.requestHandler.onRequestReceived(
                                     destination, Base64ExecCondition, expiresAt, amount, endToEndData);
@@ -250,17 +251,17 @@ public class ILPOverHTTPPlugin extends BasePlugin {
     @Override
     public CompletableFuture<Void> connect() {
         final CompletableFuture<Void> result = new CompletableFuture<Void>();
-        // TODO:(0.5) Retry. It's quite possible that in some setups both peers are restarted at the same time.
+        /* TODO:(0.5) Retry. It's quite possible that in some setups both peers are restarted at the same time or
+         * the remote peer is temporally down. Remove from list just after a security timeout period.
+         */
         // (only needed for the client roll, server does not need to reconnect, just listen)
-        final String tls_key_path = "./certs_vault/tls.key";
-        final String tls_crt_path = "./certs_vault/tls.cert";
 
         this.ilpHTTPSServer = new HTTPSServer(
                 requestHandler,
                 this.pluginConfig.listening_host,
                 this.pluginConfig.listening_port,
-                tls_key_path,
-                tls_crt_path,
+                this.parentConnector.config.tls_key_path,
+                this.parentConnector.config.tls_crt_path,
                 this.pluginConfig.remote_host,
                 this.pluginConfig.remote_port
             );
@@ -307,34 +308,45 @@ public class ILPOverHTTPPlugin extends BasePlugin {
     public CompletableFuture<DataResponse> sendData(
             String ILPConditionBase64Encoded,
             InterledgerAddress destinantion,
-            Instant ilpExpiry /* TODO:(0) Drop?*/,
+            String ammount,
+            /* TODO:(0.5) Drop ilpExpiry for ILPv4.
+             *    Is not part of the expect anymore.
+             *    Can be pased in the endToEndData if needed (recheck RFC)
+             */
+            Instant ilpExpiry,
             Optional<ByteBuffer> endToEndData
     ){
         if (!isConnected()) {
-            // TODO:(0) Use correct ILP Exception
             throw new RuntimeException("plugin not connected.");
         }
         CompletableFuture<DataResponse> result = new CompletableFuture<DataResponse>();
 
         // CREATING A WEB CLIENT
+
         WebClientOptions options = new WebClientOptions()
                 .setUserAgent("My-App/1.2.3")
-                .setFollowRedirects(false);
+                .setFollowRedirects(false)
+                .setSsl(true)
+                .setTrustAll(
+                    pluginConfig.ignoreTLSCerts
+                    /* TODO:(?) check also if old problem persists: https://github.com/eclipse/vert.x/issues/1398 */);
         options.setKeepAlive(false);
         WebClient client = WebClient.create(parentConnector.vertx, options);
 
         // POST TO THE SERVER
-
         io.vertx.core.buffer.Buffer buffer =  io.vertx.core.buffer.Buffer.buffer();
         if (endToEndData.isPresent()) buffer.setBytes(0,endToEndData.get());
         HttpRequest<io.vertx.core.buffer.Buffer> request1 = client
-            .post(443, "TODO:(0)", "TODO:(0) /some-uri");
+            .post(this.pluginConfig.remote_port, this.pluginConfig.remote_host, "");
         request1
-            .ssl(true)
             .timeout(5000)
-            .putHeader("TODO:(0)", "TODO:(0)")
+            .putHeader("ILP-Condition"   , ILPConditionBase64Encoded)
+            .putHeader("ILP-Expiry"      , ilpExpiry.toString())
+            .putHeader("ILP-Destination" , destinantion.getValue())
+            .putHeader("ILP-Amount"      , ammount)
             .sendBuffer(buffer, /*handle response */ ar -> {
-            // WARNING: responses are fully buffered,
+            // C&P from VertX tutorial:
+            //     WARNING: responses are fully buffered,
             //          use BodyCodec.pipe to pipe the response
             //          to a write stream
             // NOTE: By default no decoding is applied

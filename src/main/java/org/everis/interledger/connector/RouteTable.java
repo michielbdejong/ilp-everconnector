@@ -11,7 +11,6 @@ public class RouteTable {
 
     static class RouteTableBuilder {
         final RouteTable routeTable = new RouteTable();
-        final List<Route>  route_list =new ArrayList<Route>();
 
         public void addRoute(Route route) {
             routeTable.addRoute(route);

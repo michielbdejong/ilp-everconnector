@@ -6,9 +6,12 @@ import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.InterledgerAddress;
 import org.interledger.InterledgerPacketType;
 import org.interledger.InterledgerProtocolException;
+import org.interledger.cryptoconditions.Fulfillment;
+import org.interledger.cryptoconditions.PreimageSha256Fulfillment;
 
 import java.nio.Buffer;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -21,35 +24,18 @@ public class NetworkWithTwoConnectors {
     private static final String pathToConfig = "ILP-Plugin/config/dev_network/two_connectors";
 
     public static void main(String[] args) {
-       /*
-           public interface IRequestHandler {
-
-        class ILPResponse {
-            // TODO:(Quilt) There is no concept of type in Quilt org.interledger.InterledgerPacket
-            public final int packetType;
-            public final Optional<InterledgerProtocolException> optILPException;
-            public final Optional<String> optBase64Fulfillment;
-
-            ILPResponse(
-                int packetType,
-                Optional<InterledgerProtocolException> optILPException,
-                Optional<String> optBase64Fulfillment )
-            {
-                if (packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR &&
-                    ! optILPException.isPresent()) {
-                    throw new RuntimeException("packetType equals ILP error but optILPException is not present");
-                }
-                if (packetType == InterledgerPacketType.ILP_PAYMENT_TYPE &&
-                    !optBase64Fulfillment.isPresent() ) {
-                }
-                this.packetType = packetType;
-                this.optILPException = optILPException;
-                this.optBase64Fulfillment = optBase64Fulfillment;
-            }
-        }
-	}
-        */
         class RequestHandler implements BasePlugin.IRequestHandler {
+            HashMap<String, String> cond2Fulfillment = new HashMap<>();
+
+            RequestHandler() {
+                for (int idx=1; idx<10; idx++){
+                    String preimage = "preimage"+idx;
+                    cond2Fulfillment.put(new PreimageSha256Fulfillment(preimage.getBytes()).getCondition().getFingerprintBase64Url(), preimage);
+                }
+                for (String key : cond2Fulfillment.keySet()){
+                    System.out.println("preimage (fulfillment):"+cond2Fulfillment.get(key) +" -> condition: "+key);
+                }
+            }
              public CompletableFuture<ILPResponse> onRequestReceived(
     	        InterledgerAddress destination,
                 String Base64ExecCondition,
