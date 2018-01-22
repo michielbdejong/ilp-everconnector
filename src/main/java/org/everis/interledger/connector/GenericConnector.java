@@ -9,6 +9,7 @@ import org.interledger.cryptoconditions.Fulfillment;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -145,28 +146,26 @@ public class GenericConnector {
      * @return
      */
     public CompletableFuture<BasePlugin.IRequestHandler.ILPResponse> handleRequestOrForward(
-            BasePlugin.IRequestHandler registeredHandler,
-            ILPTransfer ilpTransfer)
-        {
-
-        CompletableFuture<BasePlugin.IRequestHandler.ILPResponse> result =
-                new CompletableFuture<BasePlugin.IRequestHandler.ILPResponse> ();
+            Optional<BasePlugin.IRequestHandler> registeredHandler,
+            ILPTransfer ilpTransfer) {
+        CompletableFuture<BasePlugin.IRequestHandler.ILPResponse> result = new CompletableFuture<> ();
 
         executor.submit(() -> {
-            BasePlugin.IRequestHandler.ILPResponse response = null;
-            try {
-                response = registeredHandler.onRequestReceived(ilpTransfer).get();
-            } catch (InterruptedException e) {
-                // TODO:(0) Retry
-            } catch (ExecutionException e) {
-                // TODO:(0) propagate exception
+            if(registeredHandler.isPresent()) {
+                try {
+                    final BasePlugin.IRequestHandler.ILPResponse response =
+                            registeredHandler.get().onRequestReceived(ilpTransfer).get();
+                    if (response.optBase64Fulfillment.isPresent()) {
+                        result.complete(response);
+                        return; // Avoid forwarding.
+                    }
+                } catch (InterruptedException e) {
+                    // TODO:(0) Retry
+                } catch (ExecutionException e) {
+                    // TODO:(0) propagate exception
+                }
             }
-            if (response.optBase64Fulfillment.isPresent()) {
-                result.complete(response);
-            } else {
-                forwarder.forwardPayment(ilpTransfer);
-            }
-
+            forwarder.forwardPayment(ilpTransfer);
         });
         return result;
     }

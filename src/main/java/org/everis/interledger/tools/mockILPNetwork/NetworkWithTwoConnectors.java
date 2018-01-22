@@ -28,10 +28,10 @@ public class NetworkWithTwoConnectors {
     public static void main(String[] args) {
         VertXConfigSupport.build(new VertxOptions()); // Init Vertx
         // First connector just "forwards" payments. No custom handler attached
-        ConnectorConfig config1 = new ConnectorConfig(pathToConfig+"/connector1.prop", ConnectorConfig.getEmptyHandler());
+        ConnectorConfig config1 = new ConnectorConfig(pathToConfig+"/connector1.prop", Optional.empty());
 
         // The second connector is "connected" with the webshop
-        ConnectorConfig config2 = new ConnectorConfig(pathToConfig+"/connector2.prop", new MockWebShop.RequestHandlerWebShop());
+        ConnectorConfig config2 = new ConnectorConfig(pathToConfig+"/connector2.prop", Optional.of(new MockWebShop.RequestHandlerWebShop()));
         GenericConnector connector1 = GenericConnector.build(config1);
         GenericConnector connector2 = GenericConnector.build(config2);
 

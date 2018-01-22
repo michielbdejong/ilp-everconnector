@@ -110,7 +110,7 @@ public class MockWebShop {
         // Pay through connector1:
 
         // Reuse config. from connector2 (connector connecting to connector1) for the client plugin:
-        ConnectorConfig config2 = new ConnectorConfig(pathToConfig+"/connector1.prop", ConnectorConfig.getEmptyHandler());
+        ConnectorConfig config2 = new ConnectorConfig(pathToConfig+"/connector1.prop", Optional.empty());
 
         ILPOverHTTPPlugin client_plugin = (ILPOverHTTPPlugin)config2.plugins.get(0);
 

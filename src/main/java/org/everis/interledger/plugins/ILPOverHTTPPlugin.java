@@ -88,7 +88,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
 
     /* HTTPS server listening for incomming requests */
     public class HTTPSServer extends AbstractVerticle {
-        final IRequestHandler requestHandler;
+        final Optional<IRequestHandler> requestHandler;
         final String listeningHost;
         final int listeningPort;
         final String tls_key_path;
@@ -100,7 +100,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         // https://github.com/vert-x3/vertx-examples/blob/master/core-examples/
         // src/main/java/io/vertx/example/core/http/https/Server.java
         private HTTPSServer(
-                IRequestHandler requestHandler,
+                Optional<IRequestHandler> requestHandler,
                 String listeningHost,
                 int listeningPort,
                 String tls_key_path,
@@ -186,10 +186,8 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                 try {
                     MultiMap headers = req.headers();
                     final byte[] endToEndData = null /* TODO:(0) Add body as endToEndData*/;
-System.out.println("deleteme ilp-condition:"+ headers.get("ilp-condition"));
                     final byte[] conditionFingerprint =
                             Base64.getUrlDecoder().decode(headers.get("ilp-condition"));
-System.out.println("deleteme conditionFingerprint.length:"+conditionFingerprint.length);
                     ILPTransfer ilpTransfer = new ILPTransfer(
                         /*String*/ "TODO:(0) ILP_TX_UUID",
                         InterledgerAddress.of(headers.get("ilp-destination")),
@@ -210,6 +208,7 @@ System.out.println("deleteme conditionFingerprint.length:"+conditionFingerprint.
                             IRequestHandler.ILPResponse ilpResponse = null;
                             ilpResponse = ilpResponseFuture.get();
                             if (ilpResponse.packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR) {
+System.out.println("deleteme: ilpResponse.optILPException.isPresent():"+ilpResponse.optILPException.isPresent()) ;
                                 throw ilpResponse.optILPException.get();
                             } else {
                                 // TODO:(0) Write recieved endToEndData in sResponse (HTTP body)
@@ -248,7 +247,7 @@ System.out.println("deleteme conditionFingerprint.length:"+conditionFingerprint.
      * @param pluginConfig   : Config for initial setup
      */
     public ILPOverHTTPPlugin(
-            ILPOverHTTPConfig pluginConfig, IRequestHandler requestHandler) {
+            ILPOverHTTPConfig pluginConfig, Optional<IRequestHandler> requestHandler) {
         super(pluginConfig, requestHandler);
         this.pluginConfig = pluginConfig;
         maxIOYAmmount = this.pluginConfig.maxIOYAmmount;

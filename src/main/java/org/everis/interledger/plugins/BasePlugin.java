@@ -8,9 +8,6 @@ import org.interledger.InterledgerPacketType;
 import org.interledger.InterledgerProtocolException;
 import org.interledger.cryptoconditions.Fulfillment;
 
-import java.nio.ByteBuffer;
-import java.time.Instant;
-import java.nio.Buffer;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -21,7 +18,7 @@ public abstract class BasePlugin {
 
     protected final BasePluginConfig basePluginConfig; // Common config applying to all shorts of plugins
 
-    protected final IRequestHandler requestHandler;
+    protected final Optional<IRequestHandler> requestHandler;
     /*
      * REF: https://github.com/interledger/rfcs/blob/master/0004-ledger-plugin-interface/0004-ledger-plugin-interface.md
      *
@@ -31,7 +28,7 @@ public abstract class BasePlugin {
      *                           |                        |                      |
      *             <--sendMoney--/          <--sendMoney--/        <--sendMoney--/
      */
-    public BasePlugin(BasePluginConfig config, IRequestHandler requestHandler){
+    public BasePlugin(BasePluginConfig config, Optional<IRequestHandler> requestHandler){
         this.basePluginConfig = config;
         this.requestHandler = requestHandler;
     }
@@ -74,6 +71,7 @@ public abstract class BasePlugin {
                 }
                 if (packetType == InterledgerPacketType.ILP_PAYMENT_TYPE &&
                     !optBase64Fulfillment.isPresent() ) {
+                    throw new RuntimeException("packetType equals ILP_PAYMENT_TYPE but optBase64Fulfillment is not present");
                 }
                 this.packetType = packetType;
                 this.optILPException = optILPException;

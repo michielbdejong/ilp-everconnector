@@ -27,9 +27,7 @@ public class ConnectorConfig {
     public final String tls_key_path;
     public final String tls_crt_path;
 
-    private static final EmptyWebHandler emptyWebHandler = new EmptyWebHandler();
-
-    public ConnectorConfig(final String configFile, BasePlugin.IRequestHandler requestHandler ){
+    public ConnectorConfig(final String configFile, Optional<BasePlugin.IRequestHandler> requestHandler ){
        propConfig = new PropertiesConfig(configFile);
        ilpAddress = InterledgerAddress.of(propConfig.getCleanString("connector.ilpAddress"));
        String peerConfigFiles = propConfig.getCleanString("connector.peersConfigFiles");
@@ -47,7 +45,7 @@ public class ConnectorConfig {
            BasePluginConfig pluginConfig = BasePluginConfig.build(aux);
            try {
                BasePlugin plugin = (BasePlugin)pluginConfig.pluginClass
-                .getConstructor(pluginConfig.configClass, BasePlugin.IRequestHandler.class)
+                .getConstructor(pluginConfig.configClass, Optional.class)
                 .newInstance(pluginConfig, requestHandler);
                plugins.add(plugin);
                rtBuilder.addRoute(new Route(pluginConfig.ledgerPrefix, plugin, pluginConfig.liquidityCurve));
@@ -67,29 +65,5 @@ public class ConnectorConfig {
       rtBuilder.setDefaultRoute(InterledgerAddress.of(propConfig.getString("default_route.prefix")));
       this.initialRoutingTable = rtBuilder.build();
    }
-
-   private static class EmptyWebHandler implements BasePlugin.IRequestHandler {
-       final CompletableFuture<ILPResponse> emptyResult;
-
-       EmptyWebHandler() {
-           emptyResult = new CompletableFuture<ILPResponse>();
-           emptyResult.complete(new ILPResponse(
-               InterledgerPacketType.ILP_PAYMENT_TYPE,
-               Optional.empty(),
-               Optional.empty())/* NOTE: Empty fulfillment forces forward to next hop */ );
-       }
-
-       @Override
-       public CompletableFuture<ILPResponse> onRequestReceived(
-               ILPTransfer ilpTransfer) {
-           return emptyResult;
-       }
-   }
-
-   public static EmptyWebHandler getEmptyHandler() {
-        return emptyWebHandler;
-   }
-
-
 
 }
