@@ -1,0 +1,39 @@
+participant client
+participant "connector.plugin" as plugin
+participant connector
+participant connector.handler as handler
+participant app
+participant connector.forwarder as forwarder
+
+note over handler, app
+   app is a (probably remote) app in charge of the
+   business logic of the receiver of payments
+   (webshop, stream service, ...)
+   handler is the local connector handler that
+   bridge received data ("conditions + endToEndData")
+   with the (probably remote) app
+end note
+
+// CONNECTOR BOOT-UP (executed once at connector start-up)
+connector -> connector: read config
+connector -> connector: instantiate plugins
+connector -> connector: instantiate data handler
+connector -> plugin: register handler
+
+// PAYMENT SETUP PHASE (client and app agree on payment)
+client <-> app: setup quantity/fulfillment/condition
+...
+// PAYMENT PHASE (client invoques closest connector with data)
+client -> plugin : data
+plugin -> handler: data
+handler -> app: search fulfillment matching condition
+alt
+else fulfillment found
+    handler -> handler: remove fulfillment
+else fulfillment not found
+    handler -> forwarder: (new) data (apply tolls) (apply tolls)
+    forwarder -> connector: (delayed) fulfillment
+    connector -> handler: fulfillment
+end
+handler -> plugin: fulfillment
+plugin  -> client:  fulfillment
