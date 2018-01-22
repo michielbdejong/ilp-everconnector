@@ -1,5 +1,7 @@
 package org.everis.interledger.tools.mockILPNetwork;
 
+import io.vertx.core.VertxOptions;
+import org.everis.interledger.config.VertXConfigSupport;
 import org.everis.interledger.connector.ConnectorConfig;
 import org.everis.interledger.connector.GenericConnector;
 import org.everis.interledger.plugins.BasePlugin;
@@ -24,8 +26,7 @@ public class NetworkWithTwoConnectors {
 
 
     public static void main(String[] args) {
-
-
+        VertXConfigSupport.build(new VertxOptions()); // Init Vertx
         // First connector just "forwards" payments. No custom handler attached
         ConnectorConfig config1 = new ConnectorConfig(pathToConfig+"/connector1.prop", ConnectorConfig.getEmptyHandler());
 

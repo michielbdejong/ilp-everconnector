@@ -1,7 +1,11 @@
 package org.everis.interledger.tools.mockILPNetwork;
 
+import io.vertx.core.VertxOptions;
+import org.everis.interledger.config.VertXConfigSupport;
+import org.everis.interledger.connector.ConnectorConfig;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
+import org.everis.interledger.plugins.ILPOverHTTPPlugin;
 import org.interledger.InterledgerAddress;
 import org.interledger.InterledgerPacketType;
 import org.interledger.InterledgerProtocolException;
@@ -9,15 +13,17 @@ import org.interledger.cryptoconditions.Condition;
 import org.interledger.cryptoconditions.PreimageSha256Fulfillment;
 import org.interledger.ilp.InterledgerProtocolError;
 
-import java.nio.Buffer;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.TemporalUnit;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class MockWebShop {
+    final static InterledgerAddress WEBSHOP_ILPADDRESS = InterledgerAddress.of("g.usd.com.amazon.webshop.");
+
     static class RequestHandlerWebShop implements BasePlugin.IRequestHandler {
-        final InterledgerAddress WEBSHOP_ILPADDRESS = InterledgerAddress.of("g.usd.com.amazon.webshop.");
         final MockWebShop REMOTE_WEBSHOP;
 
         RequestHandlerWebShop() {
@@ -95,5 +101,26 @@ public class MockWebShop {
             pendingCC2FFQueue.remove(condition);
         }
         return result;
+    }
+
+    private static final String pathToConfig = "ILP-Plugin/config/dev_network/two_connectors";
+    public static void main(String[] args) {
+        VertXConfigSupport.build(new VertxOptions()); // Init Vertx
+        // Pay through connector1:
+
+        // Reuse config. from connector2 (connector connecting to connector1) for the client plugin:
+        ConnectorConfig config2 = new ConnectorConfig(pathToConfig+"/connector1.prop", ConnectorConfig.getEmptyHandler());
+
+        ILPOverHTTPPlugin client_plugin = (ILPOverHTTPPlugin)config2.plugins.get(0);
+
+        ILPTransfer ilpTransfer = new ILPTransfer(
+            "",
+            InterledgerAddress.of(WEBSHOP_ILPADDRESS.getValue()+"account1"),
+            /*String amount*/ "10000",
+            Instant.now().plus(Duration.ofSeconds(20)),
+            new PreimageSha256Fulfillment(("preimage"+0).getBytes()).getCondition(),
+            new byte[] {}
+            );
+        client_plugin.sendData(ilpTransfer);
     }
 }

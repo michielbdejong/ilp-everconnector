@@ -48,6 +48,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.net.TrustOptions;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
+import org.everis.interledger.config.VertXConfigSupport;
 import org.everis.interledger.config.plugin.ILPOverHTTPConfig;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.interledger.InterledgerAddress;
@@ -279,7 +280,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
             }
         };
 
-        runner.accept(parentConnector.vertx);
+        runner.accept(VertXConfigSupport.getVertx());
 
         result.complete(null); // TODO:(0.1) Check if that's OK for CompletableFuture<Void>
         this.status = Status.CONNECTED;
@@ -311,9 +312,9 @@ public class ILPOverHTTPPlugin extends BasePlugin {
     public CompletableFuture<DataResponse> sendData(
             ILPTransfer ilpTransfer
     ){
-        if (!isConnected()) {
-            throw new RuntimeException("plugin not connected.");
-        }
+        // if (!isConnected()) {
+        //     throw new RuntimeException("plugin not connected.");
+        // }
         CompletableFuture<DataResponse> result = new CompletableFuture<DataResponse>();
 
         // CREATING A WEB CLIENT
@@ -326,7 +327,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                     pluginConfig.ignoreTLSCerts
                     /* TODO:(?) check also if old problem persists: https://github.com/eclipse/vert.x/issues/1398 */);
         options.setKeepAlive(false);
-        WebClient client = WebClient.create(parentConnector.vertx, options);
+        WebClient client = WebClient.create(VertXConfigSupport.getVertx(), options);
 
         // POST TO THE SERVER
         io.vertx.core.buffer.Buffer buffer =  io.vertx.core.buffer.Buffer.buffer();

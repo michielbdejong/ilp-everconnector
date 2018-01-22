@@ -1,15 +1,11 @@
 package org.everis.interledger.connector;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
-import org.interledger.InterledgerAddress;
 import org.interledger.cryptoconditions.Condition;
 import org.interledger.cryptoconditions.Fulfillment;
 
-import java.nio.ByteBuffer;
-import java.time.Instant;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,20 +29,17 @@ import java.util.concurrent.Executors;
  * generic connector for processing transfer between x ledgers connected to the connector.
  */
 public class GenericConnector {
+
     public  final ConnectorConfig config;
     private final List<BasePlugin> plugin_list;
     private final Forwarder forwarder;
     private final Map<Condition, Fulfillment> knownFulfillments = new HashMap<Condition, Fulfillment>();
-    // vertx: Framework used for async handling
-    public final Vertx vertx;
     ExecutorService executor = Executors.newFixedThreadPool(8 /* TODO:(1) Arbitrary max. numbers of parallel trheads*/);
 
     private GenericConnector(ConnectorConfig config) {
         this.config = config;
         plugin_list = config.plugins;
         this.forwarder = new Forwarder(this, config.initialRoutingTable, new Object() /*quoter*/);
-        VertxOptions options = new VertxOptions();
-        this.vertx = Vertx.vertx(options);
     }
 
     private CompletableFuture<BasePlugin.DataResponse> handleTransfer(ILPTransfer ilpTransfer) {
@@ -167,12 +160,11 @@ public class GenericConnector {
                 // TODO:(0) Retry
             } catch (ExecutionException e) {
                 // TODO:(0) propagate exception
-                forwarder.forwardPayment(ilpTransfer);
             }
             if (response.optBase64Fulfillment.isPresent()) {
                 result.complete(response);
             } else {
-                // TODO:(0) Forward to next opt
+                forwarder.forwardPayment(ilpTransfer);
             }
 
         });
