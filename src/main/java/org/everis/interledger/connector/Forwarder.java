@@ -45,7 +45,7 @@ public class Forwarder {
     111   },
      */
     public void forwardPayment(ILPTransfer ilpTransfer, CompletableFuture<BasePlugin.DataResponse> result) {
-        // CHECK 1: Check timeouts
+        // CHECK 1: Check timeouts. Abort if transfer already expired
         if (ilpTransfer.expiresAt.isAfter(Instant.now().plus(FORWARD_TIMEOUT))) {
             // return Promise.reject(ERROR_LACK_TIME)
             final InterledgerProtocolError ilpError = InterledgerProtocolError.builder()

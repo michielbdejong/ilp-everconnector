@@ -3,3 +3,4 @@ default_route.prefix=self.
 connector.peersConfigFiles=connector2_to_connector1_plugin.prop
 connector.tls_key_path=./certs_vault/tls.key
 connector.tls_crt_path=./certs_vault/tls.cert
+developmentMode=true

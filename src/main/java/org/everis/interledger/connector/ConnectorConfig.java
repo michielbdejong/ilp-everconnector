@@ -26,6 +26,7 @@ public class ConnectorConfig {
     public final RouteTable initialRoutingTable;
     public final String tls_key_path;
     public final String tls_crt_path;
+    public final boolean developmentMode;
 
     public ConnectorConfig(final String configFile, Optional<BasePlugin.IRequestHandler> requestHandler ){
        propConfig = new PropertiesConfig(configFile);
@@ -34,6 +35,8 @@ public class ConnectorConfig {
        String[] peerConfigList = peerConfigFiles.split(";");
        tls_key_path = propConfig.getCleanString("connector.tls_key_path");
        tls_crt_path = propConfig.getCleanString("connector.tls_crt_path");
+       developmentMode = propConfig.getBoolean("developmentMode");
+
        plugins = new ArrayList<>();
        RouteTable.RouteTableBuilder rtBuilder = RouteTable.builder();
 

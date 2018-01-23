@@ -45,10 +45,8 @@ package org.everis.interledger.plugins;
 import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.net.TrustOptions;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
-import org.everis.interledger.config.ExecutorConfigSupport;
 import org.everis.interledger.config.VertXConfigSupport;
 import org.everis.interledger.config.plugin.ILPOverHTTPConfig;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
@@ -57,14 +55,11 @@ import org.interledger.InterledgerAddress;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import io.vertx.core.http.HttpServer;
@@ -76,7 +71,6 @@ import org.interledger.InterledgerPacketType;
 import org.interledger.InterledgerProtocolException;
 import org.interledger.cryptoconditions.PreimageSha256Condition;
 import org.interledger.cryptoconditions.PreimageSha256Fulfillment;
-import org.interledger.ilp.InterledgerPayment;
 import org.interledger.ilp.InterledgerProtocolError;
 
 
@@ -139,8 +133,8 @@ public class ILPOverHTTPPlugin extends BasePlugin {
             final HttpServerOptions serverOptions = new HttpServerOptions().
                     setHost(listeningHost).
                     setPort(listeningPort);
-            final boolean useSSL = true;
-            if (useSSL) {
+            final boolean disableSSL = parentConnector.config.developmentMode && pluginConfig.developmentDisableTLS;
+            if (!disableSSL) {
                 serverOptions.setSsl(true);
                 serverOptions.setPemKeyCertOptions( //Assume PEM encoding
                         new PemKeyCertOptions()
@@ -340,7 +334,7 @@ System.out.println("deleteme ILPOverHTTPPlugin requestHandler END OK");
         WebClientOptions options = new WebClientOptions()
                 .setUserAgent("My-App/1.2.3")
                 .setFollowRedirects(false)
-                .setSsl(true)
+                .setSsl(parentConnector.config.developmentMode && pluginConfig.developmentDisableTLS ? false : true)
                 .setTrustAll(
                     pluginConfig.ignoreTLSCerts
                     /* TODO:(?) check also if old problem persists: https://github.com/eclipse/vert.x/issues/1398 */);

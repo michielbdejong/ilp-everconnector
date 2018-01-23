@@ -16,6 +16,9 @@ public class ILPOverHTTPConfig extends BasePluginConfig {
         public final BigInteger maxIOYAmmount; // "I Owe You"  max account
         public final BigInteger maxYOMAmmount; // "You Owe me" max account
         public final boolean ignoreTLSCerts;
+        public final boolean developmentDisableTLS;
+
+
 
         ILPOverHTTPConfig(PropertiesConfig propConfig){
             super( ILPOverHTTPPlugin.class, propConfig );
@@ -25,6 +28,7 @@ public class ILPOverHTTPConfig extends BasePluginConfig {
             remote_host    = propConfig.getCleanString("plugin.peer_plugin.remote_host");
             remote_port    = propConfig.getInteger("plugin.peer_plugin.remote_port");
             ignoreTLSCerts = propConfig.getBoolean("plugin.peer_plugin.ignoreRemoteTLSCertificates");
+            developmentDisableTLS = propConfig.getBoolean("plugin.development.tls.disable");
             maxIOYAmmount  = new BigInteger(""+propConfig.getCleanString("plugin.trustLine.maxIOYAmount"));
             maxYOMAmmount  = new BigInteger(""+propConfig.getCleanString("plugin.trustLine.maxYOMAmount"));
         }

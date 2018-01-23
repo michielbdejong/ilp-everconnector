@@ -1,6 +1,5 @@
 package org.everis.interledger.connector;
 
-import org.everis.interledger.config.ExecutorConfigSupport;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.InterledgerProtocolException;
@@ -82,68 +81,15 @@ public class GenericConnector {
         return CompletableFuture.allOf(connect_list);
     }
 
-
-/// public void notifyPreparePayment(ILPTransfer newTransfer) {
-///     InterledgerAddress destinationLedgerPrefix = newTransfer.getDestinationAccount().getPrefix();
-///     if(!this.connectorPLugins.containsKey(destinationLedgerPrefix)) {
-///         //TODO: throw exception plugin not associated with connector
-///     }
-
-///     //new ilp transfer forward without the status
-///     ILPTransfer forwardTransfer = new ILPTransfer(newTransfer.getUUID(), newTransfer.getSourceAccount(),
-///             newTransfer.getDestinationAccount(), newTransfer.getAmount(), newTransfer.getPayment(),
-///             newTransfer.getCondition());
-
-///     //reach the destination plugin
-///     PaymentChannelPlugin destinationPlugin = this.connectorPLugins.get(destinationLedgerPrefix);
-///     destinationPlugin.prepareTransfer(forwardTransfer);
-/// }
-
-/// /**
-///  * notify the source ledger for a ilp transfer fulfilled.
-///  * @param transferFulfilled
-///  * @param fulfillment
-///  */
-/// public void notifyFulfillment(ILPTransfer transferFulfilled, Fulfillment fulfillment) {
-///     InterledgerAddress sourceLedgerPrefix = transferFulfilled.getSourceAccount().getPrefix();
-///     if(!this.connectorPLugins.containsKey(sourceLedgerPrefix)) {
-///         //TODO: throw exception plugin not associated with connector
-///     }
-
-///     PaymentChannelPlugin sourcePlugin = this.connectorPLugins.get(sourceLedgerPrefix);
-///     sourcePlugin.fulfillCondition(transferFulfilled.getUUID(), fulfillment);
-/// }
-
-
-/// /**
-///  * notidy the source ledger for a ilp transfer rejected.
-///  * @param transferRejected
-///  */
-/// public void notifyReject(ILPTransfer transferRejected) {
-///     InterledgerAddress sourceLedgerPrefix = transferRejected.getSourceAccount().getPrefix();
-///     if(!this.connectorPLugins.containsKey(sourceLedgerPrefix)) {
-///         //TODO: throw exception plugin not associated with connector
-///     }
-
-///     PaymentChannelPlugin sourcePlugin = this.connectorPLugins.get(sourceLedgerPrefix);
-///     sourcePlugin.rejectTransfer(transferRejected.getUUID());
-/// }
-
-
-    public List<BasePlugin> getRegisteredPlugins() {
-        return plugin_list;
-    }
-
-
     /*
-     * TODO:(0) There is a redundancy. First, plugins are registered attached to a handler, then the plugin
-     * invoques this handler (than most probably will always be the same for the same connector) so directly
-     * attaching the handler to the connector can make more sense unless for some reason the connector could
-     * have different handlers for different plugins.
+     * Note: There is a redundancy at this moment. First, plugins are registered and attached to a handler,
+     * then the plugin invoques this handler (than most probably will always be the same for the same connector)
+     * Since there is a single handler by connector attaching the handler directly to the connector makes more sense.
+     * Could it be that in a future different plugins could use different handlers?
      */
 
     /**
-     * Connector will try to find a response through registered handler/s.
+     * Connector will try to find a response through the registered handler.
      * If the handlers can not respond (return a fulfillment) then connector will
      * forward the data to other connector using the forwarder ("RoutingTable") for it.
      * @param registeredHandler
@@ -153,25 +99,19 @@ public class GenericConnector {
     public void handleRequestOrForward(
             Optional<BasePlugin.IRequestHandler> registeredHandler,
             ILPTransfer ilpTransfer, CompletableFuture<BasePlugin.DataResponse> result) {
-System.out.println("deleteme con.handlerRequestOrForward: 1");
-        // ExecutorConfigSupport.executor.submit(() -> {
         new Thread(() -> {
-System.out.println("deleteme con.handlerRequestOrForward: 2");
             if(registeredHandler.isPresent()) {
-System.out.println("deleteme con.handlerRequestOrForward: 3");
                 try {
-System.out.println("deleteme con.handlerRequestOrForward: 4");
-                    CompletableFuture<BasePlugin.DataResponse> resultFromHandler =
-                            new CompletableFuture<BasePlugin.DataResponse>();
+                    CompletableFuture<BasePlugin.DataResponse> resultFromHandler = new CompletableFuture<>();
                     registeredHandler.get().onRequestReceived(ilpTransfer, resultFromHandler);
                     final BasePlugin.DataResponse response = resultFromHandler.get();
-System.out.println("deleteme con.handlerRequestOrForward: 5");
                     if (response.packetType != -1 /*continue*/) {
                         result.complete(response);
                         return;
+                    } else {
+                        // Continue, forward the request.
                     }
                 } catch (InterruptedException e) {
-System.out.println("deleteme con.handlerRequestOrForward: 4");
                     // TODO:(0) Retry
                     InterledgerProtocolException finalExp =
                         new InterledgerProtocolException(
@@ -181,16 +121,13 @@ System.out.println("deleteme con.handlerRequestOrForward: 4");
                                 .triggeredByAddress(config.ilpAddress)
                                 .data(e.toString().getBytes())
                                 .build());
-System.out.println("deleteme MockWebShop onRequestReceived 4.2");
                     result.completeExceptionally(finalExp);
                     return;
                 } catch (ExecutionException e) {
-System.out.println("deleteme con.handlerRequestOrForward: 5");
                     result.completeExceptionally(e.getCause());
                     return;
                 }
             }
-System.out.println("deleteme con.handlerRequestOrForward: 6");
             forwarder.forwardPayment(ilpTransfer, result);
         }).start();
     }

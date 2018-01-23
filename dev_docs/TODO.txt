@@ -1,0 +1,5 @@
+
+
+- use executor pools instead of new Thread(...).start();
+
+- Add logging support.

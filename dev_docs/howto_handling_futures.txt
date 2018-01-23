@@ -1,0 +1,58 @@
+Using java Completable Futures (https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletableFuture.html)
+changes the way of programming. In conventional (synchronous) programming a function would
+look similar to:
+
+    ClassTypeResult  functionName(ClassTypeParam1 param1, ...) {
+        ...
+        return "instance of ClassTypeResult"
+    }
+
+and such function will be invoqued in a way similar to:
+
+    // process external request
+    ...
+    ClassTypeResult var1 = functionName(..., ...);
+
+Futures are designed for the case when it's expected that a lot of
+requests are processed in parallel and every request can get blocked by external I/O.
+(This is the case for a connector where potentially many payments can arrive in parallel
+ but each payment must wait for the completion of an slow block-chain transaction or
+ network message, ...)
+
+To convert the previous function to an asynchronous version using CompletableFutures we will
+use a code similar to:
+
+    void functionName(ClassTypeParam1 param1, ..., CompletableFuture<ClassTypeResult> future ) {
+        // Execute code in new thread and return inmediately
+        new Thread({ () ->
+            ...
+            if (error) {
+                future.completeExceptionally("instance of Exception");
+            } else {
+                future.complete("instance of ClassTypeResult");
+            }
+        }).start();
+    }
+
+and the code invoquing the function would be similar to:
+
+    CompletableFuture<ClassTypeResult> future = new CompletableFuture<ClassTypeResult>();
+
+    // process external request
+    ...
+    functionName(param1, ..., future);
+    new Thread({ () ->
+        future.get(); // <- Blocking function
+    }).start();
+
+
+    Basically the invoqued (probably slow) function uses a new/pooled thread to execute its
+    work and returns inmediatelly. The thread will use the future to notify about completion
+    using future.complete(...), future.completExceptionally(...).
+
+    Notice the future is created just one, when an external request is received, and passed
+    as a parameter to any other function. In the case of the java connector, it's created
+    once and external ilp request is received on a plugin.
+
+Note: An executor using a pool of threads can be used instead of new Thread(). This will
+    boost performance since creating new threads is "slow".
