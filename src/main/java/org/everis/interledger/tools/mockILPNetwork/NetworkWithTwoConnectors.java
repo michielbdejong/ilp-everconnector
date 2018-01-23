@@ -21,7 +21,7 @@ public class NetworkWithTwoConnectors {
      *  Settlement ledger 1 <-> Connector 1 <- Payment Channel -> Connector 2 <-> Settlement Ledger 2
      *
      */
-    private static final String pathToConfig = "ILP-Plugin/config/dev_network/two_connectors";
+    private static final String pathToConfig = "config/dev_network/two_connectors";
 
 
 
