@@ -1,7 +1,7 @@
 package org.everis.interledger.plugins;
 
 import org.everis.interledger.config.plugin.BasePluginConfig;
-import org.everis.interledger.connector.GenericConnector;
+import org.everis.interledger.connector.SimpleConnector;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.interledger.InterledgerPacketType;
 import org.interledger.InterledgerProtocolException;
@@ -13,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
 // TODO:(quilt) Move to quilt/ilp-core (or quilt/ilp-connector-core or similar)
 public abstract class BasePlugin {
 
-    protected GenericConnector parentConnector; // Ref to the parent connector instantiating this plugin
+    protected SimpleConnector parentConnector; // Ref to the parent connector instantiating this plugin
 
     protected final BasePluginConfig basePluginConfig; // Common config applying to all shorts of plugins
 
@@ -108,12 +108,17 @@ public abstract class BasePlugin {
 
 
     public static class DataResponse {
-
+        public final int FORWARD = -1;
         public final int packetType;
         public final Optional<InterledgerProtocolException> optILPException;
         public final Optional<PreimageSha256Fulfillment> optFulfillment;
         public final byte[] endToEndData;
         //     public final Optional<String> optBase64Fulfillment;
+
+        private final String sErrorInvalidPacketType = "packetType must be one of := \n"
+           + "   InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR ("+InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR+") to indicate an error/exception\n"
+           + "   InterledgerPacketType.ILP_PAYMENT_TYPE ("+InterledgerPacketType.ILP_PAYMENT_TYPE+") to indicate an (resolved) fulfillment\n"
+           + "   FORWARD("+FORWARD+") to indicate that processing must continue (use only in custom handlers)";
 
         public DataResponse(
                 int packetType,
@@ -126,8 +131,10 @@ public abstract class BasePlugin {
             } else if (packetType == InterledgerPacketType.ILP_PAYMENT_TYPE &&
                 !optionalFulfillment.isPresent() ) {
                 throw new RuntimeException("packetType equals ILP_PAYMENT_TYPE but optBase64Fulfillment is not present");
-            } else if (packetType == -1) {
+            } else if (packetType == FORWARD) {
                 // Nothing todo. -1 => Continue processing (forward to next connector or handler) {
+            } else {
+                throw new RuntimeException(sErrorInvalidPacketType);
             }
             this.packetType = packetType;
             this.optFulfillment = optionalFulfillment;
@@ -151,7 +158,7 @@ public abstract class BasePlugin {
     // < body
     public abstract void sendData(ILPTransfer ilpTransfer,  CompletableFuture<BasePlugin.DataResponse> result);
 
-    public void setParentConnector(GenericConnector parentConnector) {
+    public void setParentConnector(SimpleConnector parentConnector) {
         this.parentConnector = parentConnector;
     }
 

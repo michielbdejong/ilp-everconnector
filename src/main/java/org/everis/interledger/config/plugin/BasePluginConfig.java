@@ -22,7 +22,8 @@ public abstract class BasePluginConfig {
     public final Class configClass;
     public final String /*connector account on remote peer/ledger*/ account;
     public final CurrencyUnit currency;
-    public final InterledgerAddress ledgerPrefix; // TODO:(0) when we receive getInfo() compare and raise exception if do not match
+    //  // TODO:(0.5) when we receive "getInfo()" compare and raise exception if do not match
+    public final InterledgerAddress ledgerPrefix;
     public final LiquidityCurve liquidityCurve;
     public final String configFile;
 

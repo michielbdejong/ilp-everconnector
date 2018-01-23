@@ -3,7 +3,6 @@ package org.everis.interledger.connector;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.InterledgerProtocolException;
-import org.interledger.cryptoconditions.Fulfillment;
 import org.interledger.ilp.InterledgerProtocolError;
 
 import java.time.Duration;
@@ -25,11 +24,11 @@ public class Forwarder {
     private static final int ERROR_NO_ROUTE = 3;
 
     final Object quoter;
-    final GenericConnector connector;
+    final SimpleConnector connector;
     final RouteTable routeTable;
 
 
-    public Forwarder(final GenericConnector connector, RouteTable routeTable, final Object quoter) {
+    public Forwarder(final SimpleConnector connector, RouteTable routeTable, final Object quoter) {
         this.connector = connector;
         this.routeTable = routeTable;
         this.quoter = quoter;

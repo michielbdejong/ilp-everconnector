@@ -77,8 +77,6 @@ import org.interledger.ilp.InterledgerProtocolError;
 /**
  * Entity of Plugin to connect any sender, receiver or connector with a remoteLedgerAdaptor.
  */
-// TODO:(0) Rename as BaseBTPPlugin
-
 
 public class ILPOverHTTPPlugin extends BasePlugin {
 
@@ -362,8 +360,17 @@ System.out.println("deleteme ILPOverHTTPPlugin requestHandler END OK");
             //         HttpResponse<JsonObject> response = ar.result();
             //         JsonObject body = response.body();
             if (!ar.succeeded()) {
-                System.out.println("request failed due to \n"+ar.cause().toString()+"\n"+ar.cause().getMessage());
-                // TODO:(0) throw ILP Exception
+                String sError = "ilp-over-http request failed due to \n"+ar.cause().getMessage();
+                InterledgerProtocolException finalExp =
+                    new InterledgerProtocolException(
+                        InterledgerProtocolError.builder()
+                            .errorCode(InterledgerProtocolError.ErrorCode.F02_UNREACHABLE)
+                            .triggeredAt(Instant.now())
+                            .triggeredByAddress(parentConnector.config.ilpAddress)
+                            .data(sError.getBytes())
+                            .build());
+                result.completeExceptionally(finalExp);
+
                 return;
             }
             final HttpResponse<io.vertx.core.buffer.Buffer> response = ar.result();

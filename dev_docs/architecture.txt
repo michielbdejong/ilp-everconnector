@@ -1,0 +1,4 @@
+- Connector is designed to work asyncrhonously "a la NodeJS". Blocking calls will be transformed
+  in asynchronous calls using futures and/or other techniques (reactive support with the help of
+  Vertx,...)
+-

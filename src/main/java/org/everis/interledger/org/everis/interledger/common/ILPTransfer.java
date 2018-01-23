@@ -8,7 +8,8 @@ import org.interledger.cryptoconditions.Condition;
 import org.interledger.cryptoconditions.Fulfillment;
 import org.interledger.ilp.InterledgerPayment;
 
-// TODO:(0) Remove this class and use standard ILP Packets.
+// TODO:(0.5) Try to remove and use InterledgerPayment from Quilt?
+
 public class ILPTransfer {
 
     public final String ILP_TX_UUID;

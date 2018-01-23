@@ -3,3 +3,5 @@
 - use executor pools instead of new Thread(...).start();
 
 - Add logging support.
+
+- Add connector to list of forwarded-by when receiving a remote ILP Exception.

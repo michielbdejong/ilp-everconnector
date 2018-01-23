@@ -38,11 +38,10 @@ public class MockWebShop {
          */
         @Override
         public void onRequestReceived(ILPTransfer ilpTransfer, CompletableFuture<BasePlugin.DataResponse>  result ) {
-System.out.println("deleteme MockWebShop onRequestReceived 1");
+            System.out.println("MockWebShop onRequestReceived start ");
             // ExecutorConfigSupport.executor.submit(() -> {
             new Thread(() -> {
                 if (!ilpTransfer.destinationAccount.startsWith(WEBSHOP_ILPADDRESS)) {
-System.out.println("deleteme MockWebShop onRequestReceived 2");
                     InterledgerProtocolException finalExp =
                             new InterledgerProtocolException(
                                     InterledgerProtocolError.builder()
@@ -53,14 +52,12 @@ System.out.println("deleteme MockWebShop onRequestReceived 2");
                     result.completeExceptionally(finalExp);
                 }
                 try {
-System.out.println("deleteme MockWebShop onRequestReceived 3");
                     result.complete(new BasePlugin.DataResponse(
                             InterledgerPacketType.ILP_PAYMENT_TYPE,
                             Optional.of(REMOTE_WEBSHOP.getFulfillmentOrThrow(ilpTransfer.condition)),
                             new byte[] {},
                             Optional.empty()));
                 } catch (Exception e) {
-System.out.println("deleteme MockWebShop onRequestReceived 4.1"+ e.toString());
                     InterledgerProtocolException finalExp =
                         new InterledgerProtocolException(
                             InterledgerProtocolError.builder()
@@ -69,7 +66,6 @@ System.out.println("deleteme MockWebShop onRequestReceived 4.1"+ e.toString());
                                 .triggeredByAddress(WEBSHOP_ILPADDRESS)
                                 .data(e.toString().getBytes())
                                 .build());
-System.out.println("deleteme MockWebShop onRequestReceived 4.2");
                     result.completeExceptionally(finalExp);
                 }
             // });

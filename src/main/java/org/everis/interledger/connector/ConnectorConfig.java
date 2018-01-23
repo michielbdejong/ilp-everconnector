@@ -1,20 +1,15 @@
 package org.everis.interledger.connector;
 
-import io.netty.internal.tcnative.Buffer;
 import org.everis.interledger.config.plugin.BasePluginConfig;
 import org.everis.interledger.config.PropertiesConfig;
-import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.InterledgerAddress;
-import org.interledger.InterledgerPacketType;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * List of peers connectors.

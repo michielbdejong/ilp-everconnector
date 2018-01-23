@@ -1,0 +1,24 @@
+HANDLING EXCEPTIONS:
+     InterledgerProtocolException finalExp =
+         new InterledgerProtocolException(
+             InterledgerProtocolError.builder()
+                 .errorCode(InterledgerProtocolError.ErrorCode.F05_WRONG_CONDITION)
+                 .triggeredAt(Instant.now())
+                 .triggeredByAddress(WEBSHOP_ILPADDRESS)
+                 .forwardedByAddresses(ilpAddresses) // Optional
+                 .data(e.toString().getBytes())
+                 .build());
+
+     result.completeExceptionally(finalExp);
+
+
+______________________________________________
+        ILPTransfer ilpTransfer = new ILPTransfer(
+            "",
+            InterledgerAddress.of(WEBSHOP_ILPADDRESS.getValue()+"account1"),
+            /*String amount*/ "10000",
+            Instant.now().plus(Duration.ofSeconds(20)),
+            new PreimageSha256Fulfillment(("preimage"+0).getBytes()).getCondition(),
+            new byte[] {}
+            );
+        CompletableFuture<BasePlugin.DataResponse> result = new CompletableFuture<BasePlugin.DataResponse>();
