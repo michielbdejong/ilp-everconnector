@@ -1,13 +1,13 @@
-CURL="curl --insecure -vs "
+CURL="curl --insecure -vs --retry 0 --trace - "
 function header() {
    echo "-----------------------------"
    echo "---- $1 "
    echo "-----------------------------"
 }
 
-URL_CONNECTOR1=https://localhost:5011
-URL_CONNECTOR2=https://localhost:5012
-CONDOK="-9SmS6h6MrXZLNefmxQZPSA5Mp_LGWbnHqWCj6UDMAk"
+URL_CONNECTOR1=https://ledger1:5011
+URL_CONNECTOR2=https://ledger1:5012
+CONDOK="LLeeSktzbDX-5hsvvhgaPSdyiGvUdVwWXxh1ORJpyzk"
 CONDKO="WRONG_CONDITION"
 COND_NOT_EXISTANT="-9SmS6h6MrXZLNefmxQZPSA5Mp_LGWbnHqWCj000000"
 

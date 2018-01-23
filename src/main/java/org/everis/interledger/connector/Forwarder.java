@@ -44,10 +44,9 @@ public class Forwarder {
     110     }
     111   },
      */
-    public CompletableFuture<BasePlugin.DataResponse> forwardPayment(ILPTransfer ilpTransfer) {
+    public void forwardPayment(ILPTransfer ilpTransfer, CompletableFuture<BasePlugin.DataResponse> result) {
         // CHECK 1: Check timeouts
         if (ilpTransfer.expiresAt.isAfter(Instant.now().plus(FORWARD_TIMEOUT))) {
-            CompletableFuture<BasePlugin.DataResponse> result = new CompletableFuture<>();
             // return Promise.reject(ERROR_LACK_TIME)
             final InterledgerProtocolError ilpError = InterledgerProtocolError.builder()
                 .errorCode(InterledgerProtocolError.ErrorCode.R00_TRANSFER_TIMED_OUT)
@@ -55,10 +54,17 @@ public class Forwarder {
                 .triggeredAt(Instant.now())
                 .build();
                 result.completeExceptionally(new InterledgerProtocolException(ilpError));
-                return result;
         }
 
         Route route = routeTable.findRouteByAddress(ilpTransfer.destinationAccount);
+        if (route == RouteTable.SELF) {
+           final InterledgerProtocolError ilpError = InterledgerProtocolError.builder()
+                .errorCode(InterledgerProtocolError.ErrorCode.T01_LEDGER_UNREACHABLE)
+                .triggeredByAddress(connector.config.ilpAddress)
+                .triggeredAt(Instant.now())
+                .build();
+                result.completeExceptionally(new InterledgerProtocolException(ilpError));
+        }
         /* TODO:(0):FIXME: onwardAmount: apply input/output currency conversion and connector comission/toll
          *  Use info in Route instance (liquidity curve, minimumAllowedAmmount, ...) to calculate it.
          *  NOTE: input amount will never be equal to onwardAmount unless currency is the same and toll is ZERO
@@ -76,6 +82,6 @@ public class Forwarder {
         ilpTransfer.condition,
         ilpTransfer.endToEndData );
         System.out.println("forwarding "+newILPTransfer.amount + "to "+ newILPTransfer.destinationAccount + " through "+route.plugin.getConfigFile());
-        return route.plugin.sendData(newILPTransfer);
+        route.plugin.sendData(newILPTransfer, result);
     }
 }

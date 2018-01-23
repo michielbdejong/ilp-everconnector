@@ -3,10 +3,9 @@ package org.everis.interledger.plugins;
 import org.everis.interledger.config.plugin.BasePluginConfig;
 import org.everis.interledger.connector.GenericConnector;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
-import org.interledger.InterledgerAddress;
 import org.interledger.InterledgerPacketType;
 import org.interledger.InterledgerProtocolException;
-import org.interledger.cryptoconditions.Fulfillment;
+import org.interledger.cryptoconditions.PreimageSha256Fulfillment;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -54,34 +53,33 @@ public abstract class BasePlugin {
      */
     public interface IRequestHandler {
 
-        class ILPResponse {
-            // TODO:(Quilt) There is no concept of type in Quilt org.interledger.InterledgerPacket
-            public final int packetType;
-            public final Optional<InterledgerProtocolException> optILPException;
-            public final Optional<String> optBase64Fulfillment;
+        // class ILPResponse {
+        //     // TODO:(Quilt) There is no concept of type in Quilt org.interledger.InterledgerPacket
+        //     public final int packetType;
+        //     public final Optional<InterledgerProtocolException> optILPException;
+        //     public final Optional<String> optBase64Fulfillment;
 
-            public ILPResponse(
-                int packetType,
-                Optional<InterledgerProtocolException> optILPException,
-                Optional<String> optBase64Fulfillment )
-            {
-                if (packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR &&
-                    ! optILPException.isPresent()) {
-                    throw new RuntimeException("packetType equals ILP error but optILPException is not present");
-                } else if (packetType == InterledgerPacketType.ILP_PAYMENT_TYPE &&
-                    !optBase64Fulfillment.isPresent() ) {
-                    throw new RuntimeException("packetType equals ILP_PAYMENT_TYPE but optBase64Fulfillment is not present");
-                } else if (packetType == -1) {
-                    // Nothing todo. -1 => Continue processing (forward to next connector or handler) {
-                }
-                this.packetType = packetType;
-                this.optILPException = optILPException;
-                this.optBase64Fulfillment = optBase64Fulfillment;
-            }
-        }
+        //     public ILPResponse(
+        //         int packetType,
+        //         Optional<InterledgerProtocolException> optILPException,
+        //         Optional<String> optBase64Fulfillment )
+        //     {
+        //         if (packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR &&
+        //             ! optILPException.isPresent()) {
+        //             throw new RuntimeException("packetType equals ILP error but optILPException is not present");
+        //         } else if (packetType == InterledgerPacketType.ILP_PAYMENT_TYPE &&
+        //             !optBase64Fulfillment.isPresent() ) {
+        //             throw new RuntimeException("packetType equals ILP_PAYMENT_TYPE but optBase64Fulfillment is not present");
+        //         } else if (packetType == -1) {
+        //             // Nothing todo. -1 => Continue processing (forward to next connector or handler) {
+        //         }
+        //         this.packetType = packetType;
+        //         this.optILPException = optILPException;
+        //         this.optBase64Fulfillment = optBase64Fulfillment;
+        //     }
+        //}
 
-    	CompletableFuture<ILPResponse> onRequestReceived(
-    	        ILPTransfer ilpTransfer );
+    	void onRequestReceived(ILPTransfer ilpTransfer, CompletableFuture<DataResponse>  result );
 	}
 
     protected enum Status { CONNECTED, DISCONNECTED; }
@@ -110,12 +108,31 @@ public abstract class BasePlugin {
 
 
     public static class DataResponse {
-        final Fulfillment base64fulfillment;
-        final byte[] endToEndData;
 
-        public DataResponse(Fulfillment ff, byte[] endToEndData) {
-             this.base64fulfillment = ff;
-             this.endToEndData = endToEndData;
+        public final int packetType;
+        public final Optional<InterledgerProtocolException> optILPException;
+        public final Optional<PreimageSha256Fulfillment> optFulfillment;
+        public final byte[] endToEndData;
+        //     public final Optional<String> optBase64Fulfillment;
+
+        public DataResponse(
+                int packetType,
+                Optional<PreimageSha256Fulfillment> optionalFulfillment,
+                byte[] endToEndData,
+                Optional<InterledgerProtocolException> optILPException) {
+            if (packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR &&
+                ! optILPException.isPresent()) {
+                throw new RuntimeException("packetType equals ILP error but optILPException is not present");
+            } else if (packetType == InterledgerPacketType.ILP_PAYMENT_TYPE &&
+                !optionalFulfillment.isPresent() ) {
+                throw new RuntimeException("packetType equals ILP_PAYMENT_TYPE but optBase64Fulfillment is not present");
+            } else if (packetType == -1) {
+                // Nothing todo. -1 => Continue processing (forward to next connector or handler) {
+            }
+            this.packetType = packetType;
+            this.optFulfillment = optionalFulfillment;
+            this.optILPException = optILPException;
+            this.endToEndData = endToEndData;
         }
     }
     // REF: https://github.com/interledger/rfcs/blob/de237e8b9250d83d5e9d9dec58e7aca88c887b57/0000-ilp-over-http.md
@@ -132,9 +149,7 @@ public abstract class BasePlugin {
     // < ILP-Fulfillment: cz/9RGv1PVjhKIOoyPvWkAs8KrBpIJh8UrYsQ8j34CQ=<
     // <
     // < body
-    public abstract CompletableFuture<DataResponse> sendData(ILPTransfer ilpTransfer);
-
-    public abstract CompletableFuture<Void>   sendMoney(String amount);
+    public abstract void sendData(ILPTransfer ilpTransfer,  CompletableFuture<BasePlugin.DataResponse> result);
 
     public void setParentConnector(GenericConnector parentConnector) {
         this.parentConnector = parentConnector;

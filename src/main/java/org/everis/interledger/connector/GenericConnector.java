@@ -3,11 +3,13 @@ package org.everis.interledger.connector;
 import org.everis.interledger.config.ExecutorConfigSupport;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
+import org.interledger.InterledgerProtocolException;
 import org.interledger.cryptoconditions.Condition;
 import org.interledger.cryptoconditions.Fulfillment;
 import org.interledger.ilp.InterledgerProtocolError;
 
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,20 +46,20 @@ public class GenericConnector {
         this.forwarder = new Forwarder(this, config.initialRoutingTable, new Object() /*quoter*/);
     }
 
-    private CompletableFuture<BasePlugin.DataResponse> handleTransfer(ILPTransfer ilpTransfer) {
-        Fulfillment ff = this.knownFulfillments.get(ilpTransfer.condition);
-        final CompletableFuture<BasePlugin.DataResponse> result;
-        if (ff != null) {
-            /* TODO:(RFC) Arbitrarelly incomming endToEndData from input puglin is returned.
-             *            Must it be empty?
-             */
-            result = new CompletableFuture<BasePlugin.DataResponse>();
-            result.complete(new BasePlugin.DataResponse(ff, ilpTransfer.endToEndData));
-        } else {
-            result = forwarder.forwardPayment(ilpTransfer);
-        }
-        return result;
-    }
+    // private CompletableFuture<BasePlugin.DataResponse> handleTransfer(ILPTransfer ilpTransfer) {
+    //     Fulfillment ff = this.knownFulfillments.get(ilpTransfer.condition);
+    //     final CompletableFuture<BasePlugin.DataResponse> result;
+    //     if (ff != null) {
+    //         /* TODO:(RFC) Arbitrarelly incomming endToEndData from input puglin is returned.
+    //          *            Must it be empty?
+    //          */
+    //         result = new CompletableFuture<BasePlugin.DataResponse>();
+    //         result.complete(new BasePlugin.DataResponse(ff, ilpTransfer.endToEndData));
+    //     } else {
+    //         result = forwarder.forwardPayment(ilpTransfer);
+    //     }
+    //     return result;
+    // }
 
     public static GenericConnector build(ConnectorConfig config) {
         GenericConnector result = new GenericConnector(config);
@@ -141,37 +143,55 @@ public class GenericConnector {
      */
 
     /**
-     *
+     * Connector will try to find a response through registered handler/s.
+     * If the handlers can not respond (return a fulfillment) then connector will
+     * forward the data to other connector using the forwarder ("RoutingTable") for it.
      * @param registeredHandler
      * @param ilpTransfer
      * @return
      */
-    public CompletableFuture<BasePlugin.IRequestHandler.ILPResponse> handleRequestOrForward(
+    public void handleRequestOrForward(
             Optional<BasePlugin.IRequestHandler> registeredHandler,
-            ILPTransfer ilpTransfer) {
-        CompletableFuture<BasePlugin.IRequestHandler.ILPResponse> result = new CompletableFuture<> ();
-
-        ExecutorConfigSupport.executor.submit(() -> {
+            ILPTransfer ilpTransfer, CompletableFuture<BasePlugin.DataResponse> result) {
+System.out.println("deleteme con.handlerRequestOrForward: 1");
+        // ExecutorConfigSupport.executor.submit(() -> {
+        new Thread(() -> {
+System.out.println("deleteme con.handlerRequestOrForward: 2");
             if(registeredHandler.isPresent()) {
+System.out.println("deleteme con.handlerRequestOrForward: 3");
                 try {
-                    final BasePlugin.IRequestHandler.ILPResponse response =
-                            registeredHandler.get().onRequestReceived(ilpTransfer).get();
-                    if (response.optBase64Fulfillment.isPresent()) {
+System.out.println("deleteme con.handlerRequestOrForward: 4");
+                    CompletableFuture<BasePlugin.DataResponse> resultFromHandler =
+                            new CompletableFuture<BasePlugin.DataResponse>();
+                    registeredHandler.get().onRequestReceived(ilpTransfer, resultFromHandler);
+                    final BasePlugin.DataResponse response = resultFromHandler.get();
+System.out.println("deleteme con.handlerRequestOrForward: 5");
+                    if (response.packetType != -1 /*continue*/) {
                         result.complete(response);
-                        return; // Avoid forwarding.
-                    } else if (response.optILPException.isPresent()) {
-                        // TODO:(0) return error. The handler must be configurable
-                    } else {
-                        assert (response.packetType == 1 /* continue processing flow */);
+                        return;
                     }
                 } catch (InterruptedException e) {
+System.out.println("deleteme con.handlerRequestOrForward: 4");
                     // TODO:(0) Retry
+                    InterledgerProtocolException finalExp =
+                        new InterledgerProtocolException(
+                            InterledgerProtocolError.builder()
+                                .errorCode(InterledgerProtocolError.ErrorCode.F99_APPLICATION_ERROR)
+                                .triggeredAt(Instant.now())
+                                .triggeredByAddress(config.ilpAddress)
+                                .data(e.toString().getBytes())
+                                .build());
+System.out.println("deleteme MockWebShop onRequestReceived 4.2");
+                    result.completeExceptionally(finalExp);
+                    return;
                 } catch (ExecutionException e) {
-                    // TODO:(0) propagate exception
+System.out.println("deleteme con.handlerRequestOrForward: 5");
+                    result.completeExceptionally(e.getCause());
+                    return;
                 }
             }
-            forwarder.forwardPayment(ilpTransfer);
-        });
-        return result;
+System.out.println("deleteme con.handlerRequestOrForward: 6");
+            forwarder.forwardPayment(ilpTransfer, result);
+        }).start();
     }
 }

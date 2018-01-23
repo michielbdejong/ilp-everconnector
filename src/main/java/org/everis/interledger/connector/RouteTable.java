@@ -1,13 +1,32 @@
 package org.everis.interledger.connector;
 
 import org.interledger.InterledgerAddress;
+import org.interledger.ilqp.LiquidityCurve;
+import org.interledger.ilqp.LiquidityPoint;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class RouteTable {
+    static LiquidityPoint zero = LiquidityPoint.builder()
+        .inputAmount (BigInteger.ZERO)
+        .outputAmount(BigInteger.ZERO).build();
+    static LiquidityPoint one  = LiquidityPoint.builder()
+        .inputAmount (BigInteger.ONE)
+        .outputAmount(BigInteger.ZERO).build();
+    public static final Route SELF = new Route(
+        InterledgerAddress.of("self."),
+        null /*not used. SELF is just compared to check routesto check routes  */,
+        LiquidityCurve.Builder.builder()
+            .liquidityPoint(zero)
+            .liquidityPoint(one)
+            .build());
+//  .inputAmount (new BigInteger(in_out_tuple[0]))
+//                  .outputAmount(new BigInteger(in_out_tuple[1]))
 
     static class RouteTableBuilder {
         final RouteTable routeTable = new RouteTable();
@@ -40,6 +59,10 @@ public class RouteTable {
     }
 
     public void setDefaultRoute(InterledgerAddress prefix){
+        if (prefix.getValue().startsWith("self.")) {
+            this.defaultRoute = SELF;
+            return;
+        }
         Route aux = prefixToRoute.get(prefix);
         if (aux == null) {
             String sError = "No plugin has a matching prefix for default route\n"
