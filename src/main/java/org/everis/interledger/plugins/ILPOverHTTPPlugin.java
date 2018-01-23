@@ -242,9 +242,10 @@ System.out.println("deleteme ILPOverHTTPPlugin requestHandler 6");
     final ILPOverHTTPConfig pluginConfig;
     HTTPSServer ilpHTTPSServer;
 
+    // TODO:(1) In a production plugin re-read current balance after reload/reboot
     /*
-     * TODO:(1) In a production plugin re-read current balance
-     *         after reload/reboot
+     * TODO:(0) Update balanceWithPeer after successfully having receive the payment receipt (fulfillment)
+     * TODO:(0) Check maxIOYAmmount/maxYOUAmmount not rebased before forwarding to peer.
      */
     private BigInteger balanceWithPeer = BigInteger.ZERO;
     final private BigInteger maxIOYAmmount ;

@@ -39,12 +39,6 @@ public class LocalLedgerILPAdaptor {
         }
     }
 
-    /**
-     * disconnect a plugin from the ledger.
-     */
-    public void disconnect() {
-    }
-
     public void addAccount(LocalAccount account) {
         this.internalLedger.addAccount(account);
     }
