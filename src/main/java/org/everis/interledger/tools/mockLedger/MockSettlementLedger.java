@@ -1,6 +1,7 @@
 package org.everis.interledger.tools.mockLedger;
 
 import javax.money.CurrencyUnit;
+import java.math.BigInteger;
 import java.util.*;
 
 /**
@@ -21,14 +22,14 @@ class MockSettlementLedger {
      *         for debugging / tracing purposes.
      */
     static public class TXLog {
-        final public int initialSrcAmount;
-        final public int initialDstAmount;
+        final public BigInteger initialSrcAmount;
+        final public BigInteger initialDstAmount;
         final public LocalTransfer tx;
-        final public int finalSrcAmount;
-        final public int finalDstAmount;
+        final public BigInteger finalSrcAmount;
+        final public BigInteger finalDstAmount;
 
-        TXLog(int initialSrcAmount, int initialDstAmount, LocalTransfer tx, int finalSrcAmount, int finalDstAmount) {
-            if (initialSrcAmount + initialDstAmount != finalSrcAmount + finalDstAmount) {
+        TXLog(BigInteger initialSrcAmount, BigInteger initialDstAmount, LocalTransfer tx, BigInteger finalSrcAmount, BigInteger finalDstAmount) {
+            if (initialSrcAmount.add(initialDstAmount).compareTo(finalSrcAmount.add(finalDstAmount)) != 0) {
                 throw new RuntimeException("Initial and final balances do NOT match");
             }
             this.initialSrcAmount = initialSrcAmount;
@@ -83,12 +84,12 @@ class MockSettlementLedger {
         }
         LocalAccount from =  this.ledgerAccounts.get(keyFrom);
         LocalAccount to   =  this.ledgerAccounts.get(keyTo  );
-        if (from.getBalance() < internalTransfer.ammount ) {
+        if (from.getBalance().compareTo(internalTransfer.ammount) < 0  ) {
             throw new RuntimeException("not enough funds");
         }
         // "Move money from account to account". Overwrite OLD registries
-        LocalAccount newFrom = new LocalAccount(from, from.getBalance() - internalTransfer.ammount);
-        LocalAccount newTo   = new LocalAccount(to  , to  .getBalance() + internalTransfer.ammount);
+        LocalAccount newFrom = new LocalAccount(from, from.getBalance().subtract(internalTransfer.ammount));
+        LocalAccount newTo   = new LocalAccount(to  , to  .getBalance().add     (internalTransfer.ammount));
 
         TXLog txLog = new TXLog(from.getBalance(), to.getBalance(), internalTransfer, newFrom.getBalance(), newTo.getBalance() );
 

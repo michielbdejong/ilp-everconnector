@@ -8,7 +8,6 @@ import org.everis.interledger.connector.SimpleConnector;
 import java.util.Optional;
 
 public class NetworkWithTwoConnectors {
-    // TODO:(0) Instantiate 2 connectors with 2 settlement ledgers and 1 Payment channel
     /*
      *  Settlement ledger 1 <-> Connector 1 <- Payment Channel -> Connector 2 <-> Settlement Ledger 2
      *

@@ -1,5 +1,7 @@
 package org.everis.interledger.tools.mockLedger;
 
+import java.math.BigInteger;
+
 /**
  * entity representing an account with an ILP ilpAddress, a password and a balance.
  *
@@ -11,7 +13,7 @@ package org.everis.interledger.tools.mockLedger;
 public class LocalAccount {
     final public String id;
     final public String password;
-    private int /* TODO:(0) Move to BigInteger*/ balance;
+    private BigInteger /* TODO:(0) Move to BigInteger*/ balance;
 
 
     /**
@@ -20,12 +22,12 @@ public class LocalAccount {
      * @param password
      * @param balance
      */
-    public LocalAccount(String id, String password, int balance) {
+    public LocalAccount(String id, String password, BigInteger balance) {
         this.id = id;
         this.password = password;
         this.balance = balance;
     }
-    public LocalAccount(LocalAccount other, int newBalance) {
+    public LocalAccount(LocalAccount other, BigInteger newBalance) {
         this(other.id, other.password, newBalance);
     }
 
@@ -34,7 +36,7 @@ public class LocalAccount {
         return password;
     }
 
-    public int getBalance() {
+    public BigInteger getBalance() {
         return balance;
     }
 

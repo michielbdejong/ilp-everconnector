@@ -1,6 +1,8 @@
 package org.everis.interledger.tools.mockLedger;
 
 
+import java.math.BigInteger;
+
 /**
  * Local Ledger transfer.
  * This transfer is not aware at all of ILP transfers.
@@ -10,10 +12,10 @@ package org.everis.interledger.tools.mockLedger;
 public class LocalTransfer {
     public final LocalAccount from;
     public final LocalAccount to;
-    public final int ammount;
+    public final BigInteger ammount;
 
-    LocalTransfer(LocalAccount from, LocalAccount to, int ammount){
-        if (ammount <= 0) {
+    LocalTransfer(LocalAccount from, LocalAccount to, BigInteger ammount){
+        if (ammount.compareTo(BigInteger.ZERO) <= 0) {
             throw new RuntimeException("ammount must be bigger than ZERO");
         }
         this.from = from;
