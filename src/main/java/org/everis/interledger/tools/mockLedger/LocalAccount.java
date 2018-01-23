@@ -13,7 +13,7 @@ import java.math.BigInteger;
 public class LocalAccount {
     final public String id;
     final public String password;
-    private BigInteger /* TODO:(0) Move to BigInteger*/ balance;
+    private BigInteger balance;
 
 
     /**

@@ -108,7 +108,7 @@ public abstract class BasePlugin {
 
 
     public static class DataResponse {
-        public final int FORWARD = -1;
+        public static final int FORWARD = -1;
         public final int packetType;
         public final Optional<InterledgerProtocolException> optILPException;
         public final Optional<PreimageSha256Fulfillment> optFulfillment;

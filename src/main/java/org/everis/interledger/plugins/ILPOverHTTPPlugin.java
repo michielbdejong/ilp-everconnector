@@ -176,7 +176,7 @@ System.out.println("deleteme ILPOverHTTPPlugin requestHandler 6");
             HttpServer server = vertx.createHttpServer( _getHTTPServerOptions() );
 
             server.requestHandler(req -> {
-System.out.println("deleteme ILPOverHTTPPlugin requestHandler 1");
+                System.out.println("debug: ILPOverHTTPPlugin requestHandler starting HTTP incoming request processing");
                 final HttpServerResponse response = req.response();
 
                 try {
@@ -196,33 +196,30 @@ System.out.println("deleteme ILPOverHTTPPlugin requestHandler 1");
                     CompletableFuture<BasePlugin.DataResponse> ilpResponseFuture = new CompletableFuture<> ();
                     parentConnector.handleRequestOrForward(this.requestHandler, ilpTransfer, ilpResponseFuture);
 
-System.out.println("deleteme ILPOverHTTPPlugin requestHandler 2");
                     // ExecutorConfigSupport.executor.submit(() -> {
-//                  new Thread( () -> {
                         System.out.println("deleteme ILPOverHTTPPlugin requestHandler 2.0");
                         boolean retry;
                         do {
                             retry = false;
                             try {
                                 String sResponse = "";
-System.out.println("deleteme ILPOverHTTPPlugin requestHandler 2.1");
                                 final BasePlugin.DataResponse ilpResponse = ilpResponseFuture.get();
 
-System.out.println("deleteme ILPOverHTTPPlugin requestHandler 2.2");
                                 if (ilpResponse.packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR) {
                                     System.out.println("deleteme ILPOverHTTPPlugin requestHandler 3");
                                     throw ilpResponse.optILPException.get();
-                                } else if (ilpResponse.packetType == -1) {
-System.out.println("deleteme ILPOverHTTPPlugin requestHandler 2.3");
-                                    // TODO:(0)
-                                    response.setStatusCode(400);
+                                } else if (ilpResponse.packetType == DataResponse.FORWARD) {
+                                    /*
+                                     * This must never happen. If local handler/s can not resolve, the request
+                                     * must be forwarded to next hop until either it's resolved or an exception is raised
+                                     */
+                                    __respondWithError(response, new RuntimeException("No valid response and no error"));
+                                    return;
                                 } else {
-System.out.println("deleteme ILPOverHTTPPlugin requestHandler 4");
                                     // TODO:(0) Write recieved endToEndData in sResponse (HTTP body)
                                     response.putHeader("ILP-Fulfillment", ilpResponse.optFulfillment.get().getPreimage());
                                     response.setStatusCode(200);
                                     response.end(sResponse);
-System.out.println("deleteme ILPOverHTTPPlugin requestHandler END OK");
                                     return;
                                 }
                             } catch (InterruptedException e) {

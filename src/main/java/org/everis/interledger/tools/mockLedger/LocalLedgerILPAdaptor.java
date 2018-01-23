@@ -10,7 +10,6 @@ import javax.money.CurrencyUnit;
  * This adaptor maps ILP request to internal ledger transactions.
  */
 public class LocalLedgerILPAdaptor {
-    // TODO:(0) Use real Interledger Errors instead of RuntimeException<.
 
     final int SECS_SIMULATED_LEDGER_LOAD_DELAY = 0 /*secs*/;
     public final MockSettlementLedger internalLedger;
