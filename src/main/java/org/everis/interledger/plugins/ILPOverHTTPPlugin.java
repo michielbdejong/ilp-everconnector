@@ -403,7 +403,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
             if (response.statusCode() == 200) {
                 final DataResponse delayedResult = new DataResponse(
                     InterledgerPacketType.ILP_PAYMENT_TYPE,
-                    Optional.of(new PreimageSha256Fulfillment(Base64.getUrlDecoder().decode(response.getHeader("ilp-fulfillment")))),
+                    Optional.of(new PreimageSha256Fulfillment(Base64.getDecoder().decode(response.getHeader("ilp-fulfillment")))),
                     new byte[] {},
                     Optional.empty()
                     /* TODO:(0) response.bodyAsString().getBytes()*/);
