@@ -1,5 +1,6 @@
 package org.everis.interledger.connector;
 
+import org.everis.interledger.config.ExecutorConfigSupport;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.InterledgerProtocolException;
@@ -71,7 +72,7 @@ public class SimpleConnector {
     public void handleRequestOrForward(
             Optional<BasePlugin.IRequestHandler> registeredHandler,
             ILPTransfer ilpTransfer, CompletableFuture<BasePlugin.DataResponse> result) {
-        new Thread(() -> {
+        ExecutorConfigSupport.executor.submit(() -> {
             if(registeredHandler.isPresent()) {
                 boolean bRetry;
                 final short maxTrials = 3; // TODO:(0.5) Parameterize in config
@@ -111,6 +112,6 @@ public class SimpleConnector {
                 }while(bRetry && numTrials<maxTrials);
             }
             forwarder.forwardPayment(ilpTransfer, result);
-        }).start();
+        });
     }
 }

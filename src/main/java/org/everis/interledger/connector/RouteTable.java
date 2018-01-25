@@ -86,7 +86,7 @@ public class RouteTable {
         /*
          * If an address is similar to g.part1.part2.part3.part4
          * let's try to find a matching route in order:
-         *  g.part1.part2.part3.part4
+         *  g.part1.part2.part3.part4.
          *  g.part1.part2.part3.
          *  g.part1.part2.
          *  g.part1.

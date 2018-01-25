@@ -1,5 +1,6 @@
 package org.everis.interledger.connector;
 
+import org.everis.interledger.config.ExecutorConfigSupport;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
 import org.everis.interledger.plugins.BasePlugin;
 import org.interledger.InterledgerProtocolException;
@@ -7,17 +8,16 @@ import org.interledger.ilp.InterledgerProtocolError;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
 
 /**
  * Class in charge of forwarding transfers not managed by the local connectors
  */
 public class Forwarder {
-    // make sure you always have 10 seconds to fulfill after your peer fulfilled.
+    // TODO:(1) Make those parameters configurable?
     // Never set this to less than 1 second, especially not during a leap second
-    // TODO:(1) Make this configurable
     private static final Duration MIN_MESSAGE_WINDOW = Duration.ofSeconds(1);
-    // don't bother the next node with requests that have less than one second left on the clock
+    // make sure you always have 10 seconds to fulfill after your peer fulfilled.
     private static final Duration FORWARD_TIMEOUT = Duration.ofSeconds(10);
 
     private static final int ERROR_LACK_SOURCE_AMOUNT = 2;
@@ -44,16 +44,6 @@ public class Forwarder {
     111   },
      */
     public void forwardPayment(ILPTransfer ilpTransfer, CompletableFuture<BasePlugin.DataResponse> result) {
-        // CHECK 1: Check timeouts. Abort if transfer already expired
-        if (ilpTransfer.expiresAt.isAfter(Instant.now().plus(FORWARD_TIMEOUT))) {
-            // return Promise.reject(ERROR_LACK_TIME)
-            final InterledgerProtocolError ilpError = InterledgerProtocolError.builder()
-                .errorCode(InterledgerProtocolError.ErrorCode.R00_TRANSFER_TIMED_OUT)
-                .triggeredByAddress(connector.config.ilpAddress)
-                .triggeredAt(Instant.now())
-                .build();
-                result.completeExceptionally(new InterledgerProtocolException(ilpError));
-        }
 
         Route route = routeTable.findRouteByAddress(ilpTransfer.destinationAccount);
         if (route == RouteTable.SELF) {
@@ -82,5 +72,19 @@ public class Forwarder {
         ilpTransfer.endToEndData );
         System.out.println("forwarding "+newILPTransfer.amount + "to "+ newILPTransfer.destinationAccount + " through "+route.plugin.getConfigFile());
         route.plugin.sendData(newILPTransfer, result);
+        ExecutorConfigSupport.executor.submit(() -> {
+            try {
+                BasePlugin.DataResponse response = result.get(FORWARD_TIMEOUT.getSeconds(), TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                // TODO:(0.5) Retry
+                System.out.println("InterruptedException:"+e.toString());
+            } catch (ExecutionException e) {
+                result.completeExceptionally(e.getCause());
+            } catch (TimeoutException e) {
+                result.completeExceptionally(
+                    new RuntimeException("Timeout waiting for peer response to '"+route.addressPrefix+"' route"));
+            }
+        });
+
     }
 }
