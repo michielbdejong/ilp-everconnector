@@ -9,6 +9,7 @@ plugin.peer_plugin.listening_port=5012
 plugin.development.tls.disable=true
 plugin.peer_plugin.ignoreRemoteTLSCertificates=true
 plugin.peer_plugin.remote_host=ledger1
+plugin.peer_plugin.remote_path=/
 plugin.peer_plugin.remote_port=5011
 plugin.trustLine.maxIOYAmount=100
 plugin.trustLine.maxYOMAmount=10

@@ -340,7 +340,7 @@ System.out.println("deleteme ILPOverHTTPPlugin requestHandler 6");
         io.vertx.core.buffer.Buffer buffer =  io.vertx.core.buffer.Buffer.buffer();
         // TODO:(0) uncommented this line blocks "forever" if (ilpTransfer.endToEndData.length>0) buffer.setBytes(0,ilpTransfer.endToEndData);
         HttpRequest<io.vertx.core.buffer.Buffer> request1 = client
-            .post(this.pluginConfig.remote_port, this.pluginConfig.remote_host, "/") ;
+            .post(this.pluginConfig.remote_port, this.pluginConfig.remote_host, this.pluginConfig.remote_path) ;
         request1
             .timeout(20000 /* TODO:(0.5) hardcoded */)
             .putHeader("ILP-Condition"   , ilpTransfer.condition.getFingerprintBase64Url())
@@ -373,6 +373,7 @@ System.out.println("deleteme ILPOverHTTPPlugin requestHandler 6");
             }
             final HttpResponse<io.vertx.core.buffer.Buffer> response = ar.result();
             if (response.statusCode() == 200) {
+            	    System.out.println(response.headers().entries().toString());
                 final DataResponse delayedResult = new DataResponse(
                     InterledgerPacketType.ILP_PAYMENT_TYPE,
                     Optional.of(new PreimageSha256Fulfillment(Base64.getUrlDecoder().decode(response.getHeader("ilp-fulfillment")))),
