@@ -58,6 +58,7 @@ public class MockWebShop {
                             new byte[] {},
                             Optional.empty()));
                 } catch (Exception e) {
+                    System.out.println("WARN: e.getMessage():"+e.getMessage());
                     InterledgerProtocolException finalExp =
                         new InterledgerProtocolException(
                             InterledgerProtocolError.builder()
