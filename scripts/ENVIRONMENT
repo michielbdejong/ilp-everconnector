@@ -7,12 +7,12 @@ function header() {
 
 URL_CONNECTOR1=https://ledger1:5011
 URL_CONNECTOR2=http://ledger1:5012
-CONDOK="LLeeSktzbDX-5hsvvhgaPSdyiGvUdVwWXxh1ORJpyzk"
+CONDOK="CHrNKs5AD3AZ_c_IHbrM5abjoy855jVdHnYS6cbNP1c"
 CONDKO="WRONG_CONDITION"
 COND_NOT_EXISTANT="-9SmS6h6MrXZLNefmxQZPSA5Mp_LGWbnHqWCj000000"
 
 EXPIRE_10SECS=`date -v+10S +%Y-%m-%dT%H:%M:%SZ`
-PAY1_DST="test.amundsen.bmp.asdf"
+PAY1_DST="test.amundsen.bmp.btp18q1.HOgmkOK72pVzccShcrudBDw7OP6r_FGov9ACyNJT8IU"
 PAY1_AMT="100"
 
 EXPIRE__WRONG="20171111"
