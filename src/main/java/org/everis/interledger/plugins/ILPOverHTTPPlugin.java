@@ -79,6 +79,12 @@ import org.interledger.ilp.InterledgerProtocolError;
  */
 
 public class ILPOverHTTPPlugin extends BasePlugin {
+    static final String HEADER_ILP_ERROR_CODE         = "ilp-error-code";
+    static final String HEADER_ILP_ERROR_NAME         = "ilp-error-name";
+    static final String HEADER_ILP_ERROR_TRIGGERED_BY = "ilp-error-triggered-by";
+    static final String HEADER_ILP_ERROR_FORWARDED_BY = "ilp-error-forwarded-by";
+    static final String HEADER_ILP_ERROR_TRIGGERED_AT = "ilp-error-triggered-at";
+    static final String HEADER_ILP_ERROR_MESSAGE      = "ilp-error-message";
 
     /* HTTPS server listening for incomming requests */
     public class HTTPSServer extends AbstractVerticle {
@@ -149,24 +155,43 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         }
 
         private void __respondWithError(HttpServerResponse response, Throwable e) {
-System.out.println("deleteme ILPOverHTTPPlugin requestHandler 6");
             e.printStackTrace();
             final MultiMap res_headers = response.headers();
-            InterledgerProtocolException finalExp = (e instanceof InterledgerProtocolException)
+            final InterledgerProtocolException finalExp = (e instanceof InterledgerProtocolException)
                 ? (InterledgerProtocolException) e
                 : new InterledgerProtocolException(InterledgerProtocolError.builder()
                    .errorCode(InterledgerProtocolError.ErrorCode.T00_INTERNAL_ERROR)
                    .triggeredByAddress(parentConnector.config.ilpAddress)
                    .triggeredAt(Instant.now())
-                   // .data()
+                   .data(e.getCause()!=null?e.getCause().toString().getBytes():e.toString().getBytes())
                    .build());
-            InterledgerProtocolError ilpError = finalExp.getInterledgerProtocolError();
+            final InterledgerProtocolError ilpError = finalExp.getInterledgerProtocolError();
+            final List<InterledgerAddress> forwByList = ilpError.getForwardedByAddresses();
+            final String CSVForwardedBy;
+            if (forwByList.size() == 0) {
+                CSVForwardedBy = "";
+            } else {
+                final StringBuffer aux = new StringBuffer();
+                for (InterledgerAddress address : forwByList) {
+                aux.append(address.getValue());
+                aux.append(',');
+                }
+                aux.deleteCharAt(aux.length()-1); // Remove last ','
+                CSVForwardedBy = new String(aux);
+            }
+            final String sMessage;
+            if (ilpError.getData().isPresent()) {
+                sMessage = new String(ilpError.getData().get());
+            } else {
+                sMessage = "";
+            }
             response.setStatusCode(400);
-            res_headers.set("ilp-error-Code", ilpError.getErrorCode().getCode());
-            res_headers.set("ilp-error-Name", ilpError.getErrorCode().getName());
-            res_headers.set("ilp-error-Triggered-By", ilpError.getTriggeredByAddress().toString());
-            res_headers.set("ilp-error-Triggered-At", ilpError.getTriggeredAt().toString());
-            res_headers.set("ilp-error-Message", e.toString());
+            res_headers.set(HEADER_ILP_ERROR_CODE        , ilpError.getErrorCode().getCode());
+            res_headers.set(HEADER_ILP_ERROR_NAME        , ilpError.getErrorCode().getName());
+            res_headers.set(HEADER_ILP_ERROR_TRIGGERED_BY, ilpError.getTriggeredByAddress().getValue());
+            res_headers.set(HEADER_ILP_ERROR_TRIGGERED_AT, ilpError.getTriggeredAt().toString());
+            res_headers.set(HEADER_ILP_ERROR_FORWARDED_BY, CSVForwardedBy);
+            res_headers.set(HEADER_ILP_ERROR_MESSAGE     , sMessage);
             response.end("");
         }
 
@@ -196,14 +221,14 @@ System.out.println("deleteme ILPOverHTTPPlugin requestHandler 6");
                     CompletableFuture<BasePlugin.DataResponse> ilpResponseFuture = new CompletableFuture<> ();
                     parentConnector.handleRequestOrForward(this.requestHandler, ilpTransfer, ilpResponseFuture);
 
-                    // ExecutorConfigSupport.executor.submit(() -> {
+                    // TODO:(0) ExecutorConfigSupport.executor.submit(() -> {
                         System.out.println("deleteme ILPOverHTTPPlugin requestHandler 2.0");
                         boolean retry;
                         do {
                             retry = false;
                             try {
                                 String sResponse = "";
-                                final BasePlugin.DataResponse ilpResponse = ilpResponseFuture.get();
+                                final BasePlugin.DataResponse ilpResponse = ilpResponseFuture.get(); // TODO:(0) Is blocking for ever if there is an error.
 
                                 if (ilpResponse.packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR) {
                                     System.out.println("deleteme ILPOverHTTPPlugin requestHandler 3");
@@ -381,16 +406,18 @@ System.out.println("deleteme ILPOverHTTPPlugin requestHandler 6");
                     /* TODO:(0) response.bodyAsString().getBytes()*/);
                 result.complete(delayedResult);
             } else {
-                final String sCode = response.getHeader("ilp-error-code");
-                final String sName = response.getHeader("ilp-error-name");
-                final String sTriggeredBy = response.getHeader("ilp-error-triggered-by");
+
+                final String sCode = response.getHeader(HEADER_ILP_ERROR_CODE);
+                final String sName = response.getHeader(HEADER_ILP_ERROR_NAME);
+                final String sTriggeredBy = response.getHeader(HEADER_ILP_ERROR_TRIGGERED_BY);
                 final List<InterledgerAddress> forwaredByList =
-                        Arrays.stream(response.getHeader("ilp-error-forwarded-by").split(","))
+                        Arrays.stream(response.getHeader(HEADER_ILP_ERROR_FORWARDED_BY).split(","))
+                                .filter(s -> !s.isEmpty())
                                 .map(s -> InterledgerAddress.of(s))
                                 .collect(Collectors.toList());
 
-                Instant triggeredAt = Instant.from(ZonedDateTime.parse(response.getHeader("ilp-error-triggered-at")));
-                String message = response.getHeader("ilp-error-message");
+                Instant triggeredAt = Instant.from(ZonedDateTime.parse(response.getHeader(HEADER_ILP_ERROR_TRIGGERED_AT)));
+                String message = response.getHeader(HEADER_ILP_ERROR_MESSAGE);
 
                final InterledgerProtocolError ilpError = InterledgerProtocolError.builder()
                    .errorCode(InterledgerProtocolError.ErrorCode.of(sCode, sName))
