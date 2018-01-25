@@ -4,3 +4,6 @@
 - Add logging support.
 
 - Add connector to list of forwarded-by when receiving a remote ILP Exception.
+
+- Recheck Forwarder  MIN_MESSAGE_WINDOW constant and more in general Timeouts.
+  How are them supposed to be used in "ILPv4". Is it needed at all?

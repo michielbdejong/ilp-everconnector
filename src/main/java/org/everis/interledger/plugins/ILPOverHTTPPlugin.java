@@ -1,6 +1,6 @@
 package org.everis.interledger.plugins;
 
-// REF 1: https://github.com/interledger/rfcs/pull/349
+// REF 1: RFC: https://github.com/interledger/rfcs/pull/349
 // REF 2: ILP-over-HTTP JS Implementation: https://github.com/michielbdejong/ilp-plugin-http/blob/master/index.js
 // REF 3: Writting HTTP servers and clients: http://vertx.io/docs/vertx-core/java/#_writing_http_servers_and_clients
 
@@ -75,7 +75,6 @@ import org.interledger.cryptoconditions.PreimageSha256Condition;
 import org.interledger.cryptoconditions.PreimageSha256Fulfillment;
 import org.interledger.ilp.InterledgerProtocolError;
 
-
 /**
  * Entity of Plugin to connect any sender, receiver or connector with a remoteLedgerAdaptor.
  */
@@ -86,6 +85,10 @@ public class ILPOverHTTPPlugin extends BasePlugin {
     static final String HEADER_ILP_ERROR_TRIGGERED_BY = "ilp-error-triggered-by";
     static final String HEADER_ILP_ERROR_FORWARDED_BY = "ilp-error-forwarded-by";
     static final String HEADER_ILP_ERROR_TRIGGERED_AT = "ilp-error-triggered-at";
+    /*
+     * TODO:(0) ilp-error-message doesn't look to be part of the RFCS, but it's needed
+     *         to trace errors
+     */
     static final String HEADER_ILP_ERROR_MESSAGE      = "ilp-error-message";
 
     /* HTTPS server listening for incomming requests */
@@ -183,7 +186,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
             }
             final String sMessage;
             if (ilpError.getData().isPresent()) {
-                sMessage = new String(ilpError.getData().get());
+                sMessage = new String(ilpError.getData().get()/* TODO:(0) Encode in Base64? */);
             } else {
                 sMessage = "";
             }
@@ -219,6 +222,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                         new PreimageSha256Condition(1 /*cost*/ /*cost*/, conditionFingerprint),
                         endToEndData
                     );
+                    // TODO:(0) Check that incomming transfer is not expired.
 
                     CompletableFuture<BasePlugin.DataResponse> ilpResponseFuture = new CompletableFuture<> ();
                     parentConnector.handleRequestOrForward(this.requestHandler, ilpTransfer, ilpResponseFuture);
@@ -230,9 +234,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                             retry = false;
                             try {
                                 String sResponse = "";
-                                /* TODO:(0.5) hardcoded timeout. Must come from config and match the timeout in the forwarder (plus some extra time) */
-                                final BasePlugin.DataResponse ilpResponse = ilpResponseFuture.get(30, TimeUnit.SECONDS);
-
+                                final BasePlugin.DataResponse ilpResponse = ilpResponseFuture.get();
                                 if (ilpResponse.packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR) {
                                     System.out.println("deleteme ILPOverHTTPPlugin requestHandler 3");
                                     throw ilpResponse.optILPException.get();
@@ -370,7 +372,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
         HttpRequest<io.vertx.core.buffer.Buffer> request1 = client
             .post(this.pluginConfig.remote_port, this.pluginConfig.remote_host, "/") ;
         request1
-            .timeout(20000 /* TODO:(0.5) hardcoded */)
+            .timeout(30000 /* TODO:(0.5) hardcoded */)
             .putHeader("ILP-Condition"   , ilpTransfer.condition.getFingerprintBase64Url())
             .putHeader("ILP-Expiry"      , ilpTransfer.expiresAt.toString())
             .putHeader("ILP-Destination" , ilpTransfer.destinationAccount.getValue())
@@ -409,7 +411,6 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                     /* TODO:(0) response.bodyAsString().getBytes()*/);
                 result.complete(delayedResult);
             } else {
-
                 final String sCode = response.getHeader(HEADER_ILP_ERROR_CODE);
                 final String sName = response.getHeader(HEADER_ILP_ERROR_NAME);
                 final String sTriggeredBy = response.getHeader(HEADER_ILP_ERROR_TRIGGERED_BY);
@@ -427,7 +428,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                    .triggeredByAddress(InterledgerAddress.of(sTriggeredBy))
                    .forwardedByAddresses(forwaredByList)
                    .triggeredAt(Instant.now())
-                   // .data()
+                   .data(response.getHeader(HEADER_ILP_ERROR_MESSAGE).getBytes())
                    .build();
                result.completeExceptionally(new InterledgerProtocolException(ilpError));
             }
