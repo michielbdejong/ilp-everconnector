@@ -1,4 +1,4 @@
-CURL="curl --insecure -vs --retry 0 --trace - "
+CURL="curl --insecure -vs --retry 0 "
 function header() {
    echo "-----------------------------"
    echo "---- $1 "
