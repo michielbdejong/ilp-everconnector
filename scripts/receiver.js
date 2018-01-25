@@ -1,7 +1,6 @@
 const crypto = require('crypto')
 const base64url = require('base64url')
 const IlpPluginBtp = require('ilp-plugin-btp') // to be used by receiver
-const { createReceiver, sendSingleChunk, quoteDestinationAmount } = require('.')
 const IlpPacket = require('ilp-packet')
 const IlDcp = require('ilp-protocol-ildcp')
 function sha256 (preimage) {
