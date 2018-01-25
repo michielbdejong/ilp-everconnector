@@ -39,8 +39,7 @@ public class MockWebShop {
         @Override
         public void onRequestReceived(ILPTransfer ilpTransfer, CompletableFuture<BasePlugin.DataResponse>  result ) {
             System.out.println("MockWebShop onRequestReceived start ");
-            // ExecutorConfigSupport.executor.submit(() -> {
-            new Thread(() -> {
+            ExecutorConfigSupport.executor.submit(() -> {
                 if (!ilpTransfer.destinationAccount.startsWith(WEBSHOP_ILPADDRESS)) {
                     InterledgerProtocolException finalExp =
                             new InterledgerProtocolException(
@@ -70,7 +69,7 @@ public class MockWebShop {
                     result.completeExceptionally(finalExp);
                 }
             // });
-             }).start();
+             });
         }
     }
     HashMap<String /*Base64URLencoded condition*/, String/*Base64URLencoded ff*/> pendingCC2FFQueue = new HashMap<>();

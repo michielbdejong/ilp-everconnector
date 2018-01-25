@@ -47,6 +47,7 @@ import io.vertx.core.*;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
+import org.everis.interledger.config.ExecutorConfigSupport;
 import org.everis.interledger.config.VertXConfigSupport;
 import org.everis.interledger.config.plugin.ILPOverHTTPConfig;
 import org.everis.interledger.org.everis.interledger.common.ILPTransfer;
@@ -60,6 +61,7 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import io.vertx.core.http.HttpServer;
@@ -221,14 +223,15 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                     CompletableFuture<BasePlugin.DataResponse> ilpResponseFuture = new CompletableFuture<> ();
                     parentConnector.handleRequestOrForward(this.requestHandler, ilpTransfer, ilpResponseFuture);
 
-                    // TODO:(0) ExecutorConfigSupport.executor.submit(() -> {
+                    ExecutorConfigSupport.executor.submit(() -> {
                         System.out.println("deleteme ILPOverHTTPPlugin requestHandler 2.0");
                         boolean retry;
                         do {
                             retry = false;
                             try {
                                 String sResponse = "";
-                                final BasePlugin.DataResponse ilpResponse = ilpResponseFuture.get(); // TODO:(0) Is blocking for ever if there is an error.
+                                /* TODO:(0.5) hardcoded timeout. Must come from config and match the timeout in the forwarder (plus some extra time) */
+                                final BasePlugin.DataResponse ilpResponse = ilpResponseFuture.get(30, TimeUnit.SECONDS);
 
                                 if (ilpResponse.packetType == InterledgerPacketType.INTERLEDGER_PROTOCOL_ERROR) {
                                     System.out.println("deleteme ILPOverHTTPPlugin requestHandler 3");
@@ -255,7 +258,7 @@ public class ILPOverHTTPPlugin extends BasePlugin {
                                 __respondWithError(response, e.getCause() != null ? e.getCause() : e);
                             }
                         } while (retry);
-//                  }).start();
+                  });
                 }catch (Throwable e) {
                     __respondWithError(response, e.getCause()!=null ? e.getCause() : e);
                 }
