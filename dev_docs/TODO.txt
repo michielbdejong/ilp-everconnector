@@ -1,6 +1,5 @@
-
-
-- use executor pools instead of new Thread(...).start();
+- Add (mock) support for Currency conversion, then modify forwarded to use it.
+  Also configure connector.currency, and plugin.remote_currency.
 
 - Add logging support.
 
